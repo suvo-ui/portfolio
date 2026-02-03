@@ -10,6 +10,7 @@ import Courses from "./pages/Courses";
 import ArtworkDetail from "./pages/ArtworkDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
 
         {/* Admin Panel */}
         <Route path="/admin" element={<Admin />} />
+        <Route path="/login" element={<Login />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

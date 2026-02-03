@@ -12,9 +12,37 @@ export interface Artwork {
 interface ArtworkCardProps {
   artwork: Artwork;
   priority?: boolean;
+  isAdmin?: boolean;
+  onDelete?: (id: number) => void;
 }
 
-export function ArtworkCard({ artwork, priority = false }: ArtworkCardProps) {
+export function ArtworkCard({
+  artwork,
+  priority = false,
+  isAdmin = false,
+  onDelete,
+}: ArtworkCardProps) {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault(); // prevent navigation
+    e.stopPropagation();
+
+    if (!confirm("Are you sure you want to delete this artwork?")) return;
+
+    try {
+      await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/artworks/${artwork.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (onDelete) onDelete(artwork.id);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete artwork");
+    }
+  };
+
   return (
     <Link
       to={`/artwork/${artwork.id}`}
@@ -26,7 +54,7 @@ export function ArtworkCard({ artwork, priority = false }: ArtworkCardProps) {
         loading={priority ? "eager" : "lazy"}
         className={cn(
           "h-full w-full object-cover transition-transform duration-500",
-          "group-hover:scale-105"
+          "group-hover:scale-105",
         )}
       />
 
@@ -42,6 +70,15 @@ export function ArtworkCard({ artwork, priority = false }: ArtworkCardProps) {
           </p>
         )}
       </div>
+
+      {/* DELETE BUTTON (Admin Only) */}
+      {isAdmin && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 right-2 bg-red-600 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition">
+          Delete
+        </button>
+      )}
     </Link>
   );
 }

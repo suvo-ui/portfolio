@@ -5,6 +5,8 @@ import uploadRoutes from "./routes/upload.js";
 import adminRoutes from "./routes/admin.js";
 import artworksRoutes from "./routes/artworks.js";
 import sql from "./config/db.js";
+import authRoutes from "./routes/auth.js";
+import courseRoutes from "./routes/courses.js";
 
 const app = express();
 
@@ -26,6 +28,9 @@ app.get("/", (req, res) => {
 app.use("/api/upload", uploadRoutes); // Cloudinary upload
 app.use("/api/admin", adminRoutes); // Save artwork to DB
 app.use("/api/artworks", artworksRoutes); // Fetch artworks for gallery
+app.use("/api/auth", authRoutes);
+app.use("/api/course", courseRoutes);
+
 
 /* ---------- Database Test ---------- */
 app.get("/api/db-test", async (req, res) => {

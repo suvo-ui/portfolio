@@ -19,11 +19,15 @@ interface GalleryCategory {
 interface GallerySectionProps {
   category: GalleryCategory;
   initialCount?: number;
+  isAdmin?: boolean;
+  onDeleteArtwork?: (id: number) => void;
 }
 
 export function GallerySection({
   category,
   initialCount = 2,
+  isAdmin = false,
+  onDeleteArtwork,
 }: GallerySectionProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -53,7 +57,7 @@ export function GallerySection({
               <ArrowRight
                 className={cn(
                   "ml-2 h-4 w-4 transition-transform",
-                  expanded ? "rotate-90" : "group-hover:translate-x-1"
+                  expanded ? "rotate-90" : "group-hover:translate-x-1",
                 )}
               />
             </Button>
@@ -67,10 +71,17 @@ export function GallerySection({
               key={artwork.id}
               className={cn(
                 "opacity-0 animate-fade-in",
-                `[animation-delay:${index * 100}ms]`
+                `[animation-delay:${index * 100}ms]`,
               )}
               style={{ animationDelay: `${index * 100}ms` }}>
-              <ArtworkCard artwork={artwork} priority={index < 2} />
+              <ArtworkCard
+                artwork={artwork}
+                priority={index < 2}
+                isAdmin={isAdmin}
+                onDelete={(id) => {
+                  if (onDeleteArtwork) onDeleteArtwork(id);
+                }}
+              />
             </div>
           ))}
         </div>

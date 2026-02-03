@@ -7,6 +7,9 @@ import { AboutSection } from "@/components/AboutSection";
 const Index = () => {
   const [artworks, setArtworks] = useState<any[]>([]);
 
+  // 🔐 Check if admin is logged in
+  const isAdmin = !!localStorage.getItem("adminToken");
+
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_BASE_URL}/api/artworks`)
       .then((res) => res.json())
@@ -16,12 +19,15 @@ const Index = () => {
       });
   }, []);
 
-  // Group artworks by category
+  // 🗑️ Remove artwork from UI after delete
+  const handleDeleteArtwork = (id: number) => {
+    setArtworks((prev) => prev.filter((art) => art.id !== id));
+  };
+
+  // 📂 Group artworks by category
   const groupedByCategory = artworks.reduce((acc: any, art: any) => {
     const categoryName = art.category || "Uncategorized";
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
+    if (!acc[categoryName]) acc[categoryName] = [];
     acc[categoryName].push(art);
     return acc;
   }, {});
@@ -45,8 +51,10 @@ const Index = () => {
                 name: categoryName,
                 artworks: categoryArtworks,
               }}
+              isAdmin={isAdmin}
+              onDeleteArtwork={handleDeleteArtwork}
             />
-          )
+          ),
         )}
       </div>
 
