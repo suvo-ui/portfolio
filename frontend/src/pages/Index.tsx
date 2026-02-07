@@ -3,9 +3,11 @@ import { Layout } from "@/components/Layout";
 import { HeroSection } from "@/components/HeroSection";
 import { GallerySection } from "@/components/GallerySection";
 import { AboutSection } from "@/components/AboutSection";
+import ArtworkModal from "@/components/ArtworkModal"; // ⭐ IMPORT MODAL
 
 const Index = () => {
   const [artworks, setArtworks] = useState<any[]>([]);
+  const [selectedArtwork, setSelectedArtwork] = useState<any>(null); // ⭐ MODAL STATE
 
   // 🔐 Check if admin is logged in
   const isAdmin = !!localStorage.getItem("adminToken");
@@ -53,6 +55,7 @@ const Index = () => {
               }}
               isAdmin={isAdmin}
               onDeleteArtwork={handleDeleteArtwork}
+              onOpenArtwork={(art) => setSelectedArtwork(art)} // ⭐ OPEN MODAL
             />
           ),
         )}
@@ -64,6 +67,12 @@ const Index = () => {
       </div>
 
       <AboutSection />
+
+      {/* ⭐ MODAL RENDER (VERY IMPORTANT) */}
+      <ArtworkModal
+        artwork={selectedArtwork}
+        onClose={() => setSelectedArtwork(null)}
+      />
     </Layout>
   );
 };

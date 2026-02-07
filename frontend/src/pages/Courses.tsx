@@ -8,11 +8,28 @@ export default function Courses() {
   const [course, setCourse] = useState<any | undefined>(undefined);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course`)
-      .then(res => res.json())
-      .then(data => setCourse(data))
-      .catch(() => setCourse(null));
-  }, []);
+  const loadCourse = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/course`
+      );
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`HTTP ${res.status}: ${err}`);
+      }
+
+      const data = await res.json();
+      setCourse(data);
+    } catch (err) {
+      console.error("Failed to load course:", err);
+      setCourse(null);
+    }
+  };
+
+  loadCourse();
+}, []);
+
 
   /* ---------- Loading ---------- */
   if (course === undefined) {

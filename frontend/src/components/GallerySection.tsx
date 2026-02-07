@@ -9,6 +9,8 @@ interface Artwork {
   title: string;
   image_url: string;
   description?: string;
+  price_inr?: number;
+  is_sold?: boolean;
 }
 
 interface GalleryCategory {
@@ -21,6 +23,7 @@ interface GallerySectionProps {
   initialCount?: number;
   isAdmin?: boolean;
   onDeleteArtwork?: (id: number) => void;
+  onOpenArtwork?: (artwork: Artwork) => void; // ⭐ ADDED FOR MODAL
 }
 
 export function GallerySection({
@@ -28,6 +31,7 @@ export function GallerySection({
   initialCount = 2,
   isAdmin = false,
   onDeleteArtwork,
+  onOpenArtwork, // ⭐ RECEIVE PROP
 }: GallerySectionProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -52,12 +56,13 @@ export function GallerySection({
             <Button
               variant="outline"
               className="self-start md:self-auto group"
-              onClick={() => setExpanded(!expanded)}>
+              onClick={() => setExpanded(!expanded)}
+            >
               {expanded ? "Show Less" : "See More"}
               <ArrowRight
                 className={cn(
                   "ml-2 h-4 w-4 transition-transform",
-                  expanded ? "rotate-90" : "group-hover:translate-x-1",
+                  expanded ? "rotate-90" : "group-hover:translate-x-1"
                 )}
               />
             </Button>
@@ -69,18 +74,15 @@ export function GallerySection({
           {displayedArtworks.map((artwork, index) => (
             <div
               key={artwork.id}
-              className={cn(
-                "opacity-0 animate-fade-in",
-                `[animation-delay:${index * 100}ms]`,
-              )}
-              style={{ animationDelay: `${index * 100}ms` }}>
+              className={cn("opacity-0 animate-fade-in")}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
               <ArtworkCard
                 artwork={artwork}
                 priority={index < 2}
                 isAdmin={isAdmin}
-                onDelete={(id) => {
-                  if (onDeleteArtwork) onDeleteArtwork(id);
-                }}
+                onDelete={(id) => onDeleteArtwork?.(id)}
+                onOpen={onOpenArtwork} // ⭐ CONNECT MODAL
               />
             </div>
           ))}

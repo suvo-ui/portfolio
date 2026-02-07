@@ -11,6 +11,7 @@ import ArtworkDetail from "./pages/ArtworkDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute"; // ⭐ import this
 
 const queryClient = new QueryClient();
 
@@ -26,8 +27,10 @@ const App = () => (
         <Route path="/contact" element={<Contact />} />
         <Route path="/artwork/:id" element={<ArtworkDetail />} />
 
-        {/* Admin Panel */}
+        {/* 🔐 Protected Admin Panel */}
         <Route path="/admin" element={<Admin />} />
+
+        {/* Public login */}
         <Route path="/login" element={<Login />} />
 
         <Route path="*" element={<NotFound />} />

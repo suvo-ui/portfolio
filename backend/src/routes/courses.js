@@ -1,7 +1,8 @@
 import express from "express";
 import multer from "multer";
 import sql from "../config/db.js";
-import { supabase } from "../config/supabase.js";
+import supabase from "../config/supabase.js";
+import adminAuth from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -14,7 +15,7 @@ router.get("/", async (req, res) => {
 
 /* ---------- PUT course (admin) ---------- */
 
-router.put("/", upload.single("video"), async (req, res) => {
+router.put("/",adminAuth, upload.single("video"), async (req, res) => {
   try {
     const { markdown } = req.body;
 
@@ -71,7 +72,7 @@ router.put("/", upload.single("video"), async (req, res) => {
 });
 /* ---------- DELETE video (admin) ---------- */
 
-router.delete("/video", async (req, res) => {
+router.delete("/video",adminAuth, async (req, res) => {
   try {
     const result = await sql`
       SELECT video_path FROM course_page WHERE id = true
@@ -100,7 +101,6 @@ router.delete("/video", async (req, res) => {
     res.status(500).json({ error: "Failed to delete video" });
   }
 });
-
 
 
 export default router;

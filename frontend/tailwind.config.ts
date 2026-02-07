@@ -2,7 +2,12 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -14,15 +19,17 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Boska', 'serif'],
-        body: ['DM Sans', 'sans-serif'],
+        display: ["Boska", "serif"],
+        body: ["DM Sans", "sans-serif"],
       },
+
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -51,16 +58,20 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+
         gold: {
           DEFAULT: "hsl(var(--gold))",
           light: "hsl(var(--gold-light))",
           dark: "hsl(var(--gold-dark))",
         },
+
         cream: "hsl(var(--cream))",
+
         charcoal: {
           DEFAULT: "hsl(var(--charcoal))",
           light: "hsl(var(--charcoal-light))",
         },
+
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -72,11 +83,14 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+
+      /* ================= ANIMATIONS ================= */
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -86,6 +100,7 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+
         "fade-in": {
           "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
@@ -98,41 +113,59 @@ export default {
           "0%": { opacity: "0", transform: "translateX(30px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
+
         "scale-in": {
           "0%": { opacity: "0", transform: "scale(0.95)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
+
         "slide-up": {
           "0%": { transform: "translateY(100%)" },
           "100%": { transform: "translateY(0)" },
         },
+
         "image-reveal": {
           "0%": { clipPath: "inset(0 100% 0 0)" },
           "100%": { clipPath: "inset(0 0 0 0)" },
         },
+
+        /* ⭐ NEW — modal backdrop fade */
+        "backdrop-fade": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
       },
+
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+
         "fade-in": "fade-in 0.7s ease-out forwards",
         "fade-in-left": "fade-in-left 0.7s ease-out forwards",
         "fade-in-right": "fade-in-right 0.7s ease-out forwards",
+
         "scale-in": "scale-in 0.5s ease-out forwards",
         "slide-up": "slide-up 0.6s ease-out forwards",
         "image-reveal": "image-reveal 1s ease-out forwards",
+
+        /* ⭐ NEW — cinematic modal background */
+        "backdrop-fade": "backdrop-fade 0.25s ease-out forwards",
       },
+
       backgroundImage: {
-        'gradient-gold': 'var(--gradient-gold)',
-        'gradient-dark': 'var(--gradient-dark)',
-        'gradient-card': 'var(--gradient-card)',
-        'gradient-hero-overlay': 'var(--gradient-hero-overlay)',
+        "gradient-gold": "var(--gradient-gold)",
+        "gradient-dark": "var(--gradient-dark)",
+        "gradient-card": "var(--gradient-card)",
+        "gradient-hero-overlay": "var(--gradient-hero-overlay)",
       },
+
       boxShadow: {
-        'glow': 'var(--shadow-glow)',
-        'card': 'var(--shadow-card)',
-        'image': 'var(--shadow-image)',
+        glow: "var(--shadow-glow)",
+        card: "var(--shadow-card)",
+        image: "var(--shadow-image)",
       },
     },
   },
+
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
