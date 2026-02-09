@@ -6,7 +6,8 @@ export interface Artwork {
   description?: string;
   image_url: string;
   category?: string;
-  price_inr?: number; // ⭐ price support
+  price_inr?: number;
+  is_sold?: boolean;
 }
 
 interface ArtworkCardProps {
@@ -14,7 +15,7 @@ interface ArtworkCardProps {
   priority?: boolean;
   isAdmin?: boolean;
   onDelete?: (id: number) => void;
-  onOpen?: (artwork: Artwork) => void; // ⭐ modal open
+  onOpen?: (artwork: Artwork) => void;
 }
 
 export function ArtworkCard({
@@ -33,7 +34,10 @@ export function ArtworkCard({
     try {
       await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/admin/artworks/${artwork.id}`,
-        { method: "DELETE", credentials: "include" }
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
       );
 
       onDelete?.(artwork.id);
@@ -45,38 +49,53 @@ export function ArtworkCard({
 
   return (
     <div
-      onClick={() => onOpen?.(artwork)} // ⭐ open modal instead of routing
-      className="group relative block cursor-pointer rounded-xl bg-zinc-900 overflow-hidden transition hover:scale-[1.02]"
+      onClick={() => onOpen?.(artwork)}
+      className="group relative cursor-pointer overflow-hidden bg-black"
     >
-      {/* ===== FIXED FRAME (same size for all artworks) ===== */}
-      <div className="h-64 bg-zinc-900 border border-zinc-800 p-4 flex items-center justify-center">
+      {/* ===== FIXED PROFESSIONAL FRAME (no negative space) ===== */}
+      <div className="w-full aspect-[4/5] overflow-hidden">
         <img
           src={artwork.image_url}
           alt={artwork.title}
           loading={priority ? "eager" : "lazy"}
           className={cn(
-            "max-h-full max-w-full object-contain transition-transform duration-500",
+            "w-full h-full object-cover",
+            "transition-transform duration-700 ease-out",
             "group-hover:scale-105"
           )}
         />
       </div>
 
-      {/* ===== Hover Overlay ===== */}
-      <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      {/* ===== GRADIENT OVERLAY ===== */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
-      {/* ===== Text on Hover ===== */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-        <h3 className="text-white text-lg font-medium">{artwork.title}</h3>
+      {/* ===== SALE BADGE ===== */}
+      <div className="pointer-events-none absolute top-4 left-4 opacity-0 transition duration-500 group-hover:opacity-100">
+        {artwork.is_sold ? (
+          <span className="bg-red-600/90 text-white text-xs px-3 py-1 rounded-full backdrop-blur">
+            Sold
+          </span>
+        ) : (
+          <span className="bg-emerald-600/90 text-white text-xs px-3 py-1 rounded-full backdrop-blur">
+            Available
+          </span>
+        )}
+      </div>
+
+      {/* ===== TEXT INFO ===== */}
+      <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-6 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+        <h3 className="text-white text-lg font-semibold tracking-tight">
+          {artwork.title}
+        </h3>
 
         {artwork.description && (
-          <p className="text-zinc-300 text-sm line-clamp-2">
+          <p className="text-zinc-300 text-sm mt-1 line-clamp-2">
             {artwork.description}
           </p>
         )}
 
-        {/* ⭐ PRICE DISPLAY */}
         {artwork.price_inr && (
-          <p className="mt-2 text-white font-semibold">
+          <p className="mt-2 text-white font-medium">
             ₹{artwork.price_inr.toLocaleString()}
             <span className="text-zinc-400 ml-2 text-sm">
               (${(artwork.price_inr / 83).toFixed(0)})
@@ -85,11 +104,11 @@ export function ArtworkCard({
         )}
       </div>
 
-      {/* ===== Delete Button (Admin Only) ===== */}
+      {/* ===== ADMIN DELETE ===== */}
       {isAdmin && (
         <button
           onClick={handleDelete}
-          className="absolute top-2 right-2 bg-red-600 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition"
+          className="absolute top-4 right-4 bg-red-600 text-white text-xs px-3 py-1 rounded-full opacity-0 transition group-hover:opacity-100"
         >
           Delete
         </button>

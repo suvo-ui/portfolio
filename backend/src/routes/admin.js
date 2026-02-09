@@ -9,13 +9,19 @@ const router = express.Router();
    CREATE ARTWORK
 ===================================================== */
 router.post("/artworks", adminAuth, async (req, res) => {
-  const { title, description, category_id, image_url, price_inr } = req.body;
-
+  const { title, description, category_id, image_url, price_inr, size } = req.body;
 
   try {
     const result = await sql`
-      INSERT INTO artworks (title, description, category_id, image_url, price_inr)
-      VALUES (${title}, ${description ?? null}, ${category_id}, ${image_url}, ${price_inr})
+      INSERT INTO artworks (title, description, category_id, image_url, price_inr, size)
+      VALUES (
+        ${title},
+        ${description ?? null},
+        ${category_id},
+        ${image_url},
+        ${price_inr ?? null},
+        ${size ?? null}
+      )
       RETURNING *;
     `;
 
@@ -32,7 +38,7 @@ router.post("/artworks", adminAuth, async (req, res) => {
 router.put("/artworks/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category_id, image_url, price_inr } = req.body;
+    const { title, description, category_id, image_url, price_inr, size } = req.body;
 
     // 1️⃣ Get current artwork
     const existingRows = await sql`
@@ -64,8 +70,9 @@ router.put("/artworks/:id", adminAuth, async (req, res) => {
         title = ${title ?? existing.title},
         description = ${description ?? existing.description},
         category_id = ${category_id ?? existing.category_id},
-        image_url = ${image_url ?? existing.image_url}
+        image_url = ${image_url ?? existing.image_url},
         price_inr = ${price_inr ?? existing.price_inr},
+        size_text = ${size ?? existing.size}
       WHERE id = ${id}
       RETURNING *;
     `;
@@ -74,6 +81,28 @@ router.put("/artworks/:id", adminAuth, async (req, res) => {
   } catch (err) {
     console.error("UPDATE ARTWORK ERROR:", err);
     res.status(500).json({ error: "Failed to update artwork" });
+  }
+});
+
+/* =====================================================
+   TOGGLE SOLD STATUS
+===================================================== */
+router.patch("/artworks/:id/sold", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_sold } = req.body;
+
+    const updated = await sql`
+      UPDATE artworks
+      SET is_sold = ${is_sold}
+      WHERE id = ${id}
+      RETURNING *;
+    `;
+
+    res.json(updated[0]);
+  } catch (err) {
+    console.error("TOGGLE SOLD ERROR:", err);
+    res.status(500).json({ error: "Failed to update sold status" });
   }
 });
 

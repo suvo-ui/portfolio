@@ -8,6 +8,7 @@ import adminRoutes from "./routes/admin.js";
 import artworksRoutes from "./routes/artworks.js";
 import authRoutes from "./routes/auth.js";
 import courseRoutes from "./routes/courses.js";
+import categoriesRoutes from "./routes/categories.js";
 import sql from "./config/db.js";
 
 const app = express();
@@ -43,6 +44,9 @@ app.use("/api/admin", adminRoutes);       // Admin DB actions
 app.use("/api/artworks", artworksRoutes); // Public gallery
 app.use("/api/auth", authRoutes);         // Login / me / logout
 app.use("/api/course", courseRoutes);     // Course management
+app.use("/api", categoriesRoutes);   // Category management
+
+
 
 /* ---------- Database Test ---------- */
 app.get("/api/db-test", async (req, res) => {

@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 
-/* ---------- Static Categories ---------- */
-const categories = [
-  { id: 1, name: "Portrait" },
-  { id: 2, name: "Landscape" },
-  { id: 3, name: "Abstract" },
-];
-
 export default function Admin() {
-  /* ================= ARTWORK CREATE ================= */
+  /* ================= CATEGORIES ================= */
+  const [categories, setCategories] = useState<any[]>([]);
+  const [newCategory, setNewCategory] = useState("");
+
+  /* ================= CREATE ARTWORK ================= */
   const [artTitle, setArtTitle] = useState("");
   const [artDescription, setArtDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [price, setPrice] = useState("");
+  const [size, setSize] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,12 +19,13 @@ export default function Admin() {
   /* ================= EXISTING ARTWORKS ================= */
   const [artworks, setArtworks] = useState<any[]>([]);
 
-  /* ================= EDITING ================= */
+  /* ================= EDIT ================= */
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editSize, setEditSize] = useState("");
   const [editFile, setEditFile] = useState<File | null>(null);
 
   /* ================= COURSE ================= */
@@ -35,8 +34,18 @@ export default function Admin() {
   const [hasVideo, setHasVideo] = useState(false);
   const [courseUploading, setCourseUploading] = useState(false);
 
-  /* ================= LOAD COURSE ================= */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/categories`)
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch(console.error);
+
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/artworks`)
+      .then((res) => res.json())
+      .then(setArtworks)
+      .catch(console.error);
+
     fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course`)
       .then((res) => res.json())
       .then((data) => {
@@ -46,20 +55,13 @@ export default function Admin() {
       .catch(console.error);
   }, []);
 
-  /* ================= LOAD ARTWORKS ================= */
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/artworks`)
-      .then((res) => res.json())
-      .then(setArtworks)
-      .catch(console.error);
-  }, []);
-
   /* ================= LOGOUT ================= */
   const handleLogout = async () => {
     await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
       method: "POST",
       credentials: "include",
     });
+
     window.location.href = "/login";
   };
 
@@ -73,22 +75,49 @@ export default function Admin() {
     },
   });
 
+  /* ================= CATEGORY CRUD ================= */
+  const createCategory = async () => {
+    if (!newCategory.trim()) return;
+
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/admin/categories`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: newCategory }),
+      }
+    );
+
+    const created = await res.json();
+    setCategories((prev) => [...prev, created]);
+    setNewCategory("");
+  };
+
+  const deleteCategory = async (id: number) => {
+    if (!confirm("Delete category?")) return;
+
+    await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/admin/categories/${id}`,
+      { method: "DELETE", credentials: "include" }
+    );
+
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+  };
+
   /* ================= CREATE ARTWORK ================= */
   const handleSubmitArtwork = async () => {
-    if (!file || !artTitle || !categoryId || !price) {
-      alert("Fill all required fields");
-      return;
-    }
+    if (!file || !artTitle || !categoryId || !price) return;
 
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("image", file);
+      const fd = new FormData();
+      fd.append("image", file);
 
       const uploadRes = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/upload`,
-        { method: "POST", credentials: "include", body: formData }
+        { method: "POST", credentials: "include", body: fd }
       );
 
       const uploadData = await uploadRes.json();
@@ -105,6 +134,7 @@ export default function Admin() {
             category_id: Number(categoryId),
             image_url: uploadData.url,
             price_inr: Number(price),
+            size,
           }),
         }
       );
@@ -116,19 +146,15 @@ export default function Admin() {
       setArtDescription("");
       setCategoryId("");
       setPrice("");
+      setSize("");
       setFile(null);
       setPreview(null);
-
-      alert("Artwork uploaded");
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= DELETE ARTWORK ================= */
+  /* ================= DELETE ================= */
   const deleteArtwork = async (id: number) => {
     if (!confirm("Delete permanently?")) return;
 
@@ -140,62 +166,73 @@ export default function Admin() {
     setArtworks((prev) => prev.filter((a) => a.id !== id));
   };
 
-  /* ================= START EDIT ================= */
+  /* ================= SOLD TOGGLE ================= */
+  const toggleSold = async (art: any) => {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/admin/artworks/${art.id}/sold`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ is_sold: !art.is_sold }),
+      }
+    );
+
+    const updated = await res.json();
+    setArtworks((prev) => prev.map((a) => (a.id === art.id ? updated : a)));
+  };
+
+  /* ================= EDIT ================= */
   const startEdit = (art: any) => {
     setEditingId(art.id);
     setEditTitle(art.title);
     setEditDescription(art.description);
     setEditCategory(String(art.category_id));
     setEditPrice(String(art.price_inr ?? ""));
+    setEditSize(String(art.size ?? ""));
   };
 
-  /* ================= SAVE EDIT ================= */
   const saveEdit = async (id: number) => {
-    try {
-      let newImageUrl = null;
+    let newImageUrl = null;
 
-      if (editFile) {
-        const fd = new FormData();
-        fd.append("image", editFile);
+    if (editFile) {
+      const fd = new FormData();
+      fd.append("image", editFile);
 
-        const up = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/upload`,
-          { method: "POST", credentials: "include", body: fd }
-        );
-
-        const data = await up.json();
-        newImageUrl = data.url;
-      }
-
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/artworks/${id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            title: editTitle,
-            description: editDescription,
-            category_id: Number(editCategory),
-            image_url: newImageUrl,
-            price_inr: Number(editPrice),
-          }),
-        }
+      const up = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/upload`,
+        { method: "POST", credentials: "include", body: fd }
       );
 
-      const updated = await res.json();
-
-      setArtworks((prev) => prev.map((a) => (a.id === id ? updated : a)));
-
-      setEditingId(null);
-      setEditFile(null);
-    } catch (err) {
-      console.error(err);
-      alert("Update failed");
+      const data = await up.json();
+      newImageUrl = data.url;
     }
+
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/admin/artworks/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          category_id: Number(editCategory),
+          image_url: newImageUrl,
+          price_inr: Number(editPrice),
+          size: editSize,
+        }),
+      }
+    );
+
+    const updated = await res.json();
+    setArtworks((prev) => prev.map((a) => (a.id === id ? updated : a)));
+
+    setEditingId(null);
+    setEditFile(null);
   };
 
-  /* ================= UPDATE COURSE ================= */
+  /* ================= COURSE ================= */
   const updateCourse = async () => {
     const fd = new FormData();
     fd.append("markdown", markdown);
@@ -203,64 +240,75 @@ export default function Admin() {
 
     setCourseUploading(true);
 
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/course`,
-        { method: "PUT", credentials: "include", body: fd }
-      );
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course`, {
+      method: "PUT",
+      credentials: "include",
+      body: fd,
+    });
 
-      const data = await res.json();
-      setHasVideo(!!data.video_path);
-      setVideo(null);
-
-      alert("Course updated");
-    } catch {
-      alert("Course update failed");
-    } finally {
-      setCourseUploading(false);
-    }
+    const data = await res.json();
+    setHasVideo(!!data.video_path);
+    setVideo(null);
+    setCourseUploading(false);
   };
 
-  /* ================= DELETE COURSE VIDEO ================= */
   const deleteCourseVideo = async () => {
     if (!confirm("Delete course video?")) return;
 
-    await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/course/video`,
-      { method: "DELETE", credentials: "include" }
-    );
+    await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/video`, {
+      method: "DELETE",
+      credentials: "include",
+    });
 
     setHasVideo(false);
   };
 
+  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
       <div className="max-w-6xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl">
 
-        {/* Header */}
-        <div className="mb-10">
+        {/* HEADER + LOGOUT */}
+        <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-          <p className="text-zinc-400 mt-1">
-            Manage artworks, pricing, and course content
-          </p>
-        </div>
-
-        {/* Logout */}
-        <div className="flex justify-end mb-6">
-          <button onClick={handleLogout} className="bg-red-600 px-4 py-2 rounded">
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg"
+          >
             Logout
           </button>
         </div>
 
-        {/* Existing Artworks */}
+        {/* CATEGORY MANAGEMENT */}
+        <h2 className="text-2xl mb-4">Categories</h2>
+
+        <div className="flex gap-2 mb-4">
+          <input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            placeholder="New category"
+            className="flex-1 bg-zinc-800 p-2 rounded"
+          />
+          <button onClick={createCategory} className="bg-emerald-600 px-4 py-2 rounded">
+            Add
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-10">
+          {categories.map((c) => (
+            <div key={c.id} className="bg-zinc-800 px-3 py-1 rounded-full flex gap-2">
+              <span>{c.name}</span>
+              <button onClick={() => deleteCategory(c.id)} className="text-red-400">✕</button>
+            </div>
+          ))}
+        </div>
+
+        {/* EXISTING ARTWORKS */}
         <h2 className="text-2xl mb-4">Existing Artworks</h2>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
           {artworks.map((art) => (
-            <div
-              key={art.id}
-              className="relative group border border-zinc-800 p-2 rounded-lg transition hover:scale-[1.02] hover:border-zinc-600"
-            >
+            <div key={art.id} className="border border-zinc-800 p-2 rounded-lg">
               <img src={art.image_url} className="h-40 w-full object-cover mb-2" />
 
               {editingId === art.id ? (
@@ -268,6 +316,7 @@ export default function Admin() {
                   <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full mb-1 bg-zinc-800 p-1" />
                   <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full mb-1 bg-zinc-800 p-1" />
                   <input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="w-full mb-1 bg-zinc-800 p-1" />
+                  <input value={editSize} onChange={(e) => setEditSize(e.target.value)} className="w-full mb-1 bg-zinc-800 p-1" />
 
                   <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)} className="w-full mb-1 bg-zinc-800 p-1">
                     {categories.map((c) => (
@@ -275,23 +324,27 @@ export default function Admin() {
                     ))}
                   </select>
 
-                  <input type="file" accept="image/*" onChange={(e) => e.target.files && setEditFile(e.target.files[0])} className="mb-2" />
+                  <input type="file" onChange={(e) => e.target.files && setEditFile(e.target.files[0])} className="mb-2" />
 
-                  <button onClick={() => saveEdit(art.id)} className="bg-emerald-600 px-2 py-1 mr-2">Save</button>
-                  <button onClick={() => setEditingId(null)} className="bg-zinc-600 px-2 py-1">Cancel</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEdit(art.id)} className="bg-emerald-600 text-xs px-2 py-1 rounded">Save</button>
+                    <button onClick={() => setEditingId(null)} className="bg-zinc-600 text-xs px-2 py-1 rounded">Cancel</button>
+                  </div>
                 </>
               ) : (
                 <>
                   <p className="font-semibold">{art.title}</p>
-                  <p className="text-sm text-zinc-400">{art.description}</p>
+                  {art.price_inr && <p>₹{art.price_inr.toLocaleString()}</p>}
+                  {art.size && <p className="text-xs text-zinc-400">{art.size}</p>}
 
-                  {art.price_inr && (
-                    <p className="text-white font-semibold mt-1">
-                      ₹{art.price_inr.toLocaleString()}
-                    </p>
-                  )}
+                  <button
+                    onClick={() => toggleSold(art)}
+                    className="mt-2 text-xs px-2 py-1 rounded bg-yellow-500 text-black"
+                  >
+                    {art.is_sold ? "Mark Available" : "Mark Sold"}
+                  </button>
 
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1">
+                  <div className="flex gap-2 mt-2">
                     <button onClick={() => startEdit(art)} className="bg-blue-600 text-xs px-2 py-1 rounded">Edit</button>
                     <button onClick={() => deleteArtwork(art.id)} className="bg-red-600 text-xs px-2 py-1 rounded">Delete</button>
                   </div>
@@ -301,12 +354,13 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Upload Artwork */}
+        {/* UPLOAD ARTWORK */}
         <h2 className="text-2xl mb-4">Upload Artwork</h2>
 
         <input placeholder="Title" value={artTitle} onChange={(e) => setArtTitle(e.target.value)} className="w-full mb-2 bg-zinc-800 p-2" />
         <textarea placeholder="Description" value={artDescription} onChange={(e) => setArtDescription(e.target.value)} className="w-full mb-2 bg-zinc-800 p-2" />
-        <input type="number" placeholder="Price in ₹" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full mb-2 bg-zinc-800 p-2" />
+        <input type="number" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full mb-2 bg-zinc-800 p-2" />
+        <input placeholder="Size" value={size} onChange={(e) => setSize(e.target.value)} className="w-full mb-2 bg-zinc-800 p-2" />
 
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full mb-2 bg-zinc-800 p-2">
           <option value="">Select category</option>
@@ -316,7 +370,7 @@ export default function Admin() {
         </select>
 
         {!preview ? (
-          <div {...getRootProps()} className="border-dashed border p-6 text-center mb-2">
+          <div {...getRootProps()} className="border-dashed border p-6 text-center mb-2 cursor-pointer">
             <input {...getInputProps()} />
             Drag & drop image
           </div>
@@ -324,15 +378,15 @@ export default function Admin() {
           <img src={preview} className="h-40 mb-2" />
         )}
 
-        <button onClick={handleSubmitArtwork} disabled={loading} className="bg-white text-black px-4 py-2">
+        <button onClick={handleSubmitArtwork} disabled={loading} className="bg-white text-black px-4 py-2 mb-12">
           {loading ? "Uploading..." : "Publish Artwork"}
         </button>
 
-        {/* Course Section */}
-        <div className="mt-16 border-t border-zinc-800 pt-10">
+        {/* COURSE */}
+        <div className="border-t border-zinc-800 pt-10">
           <h2 className="text-2xl mb-4">Course Content</h2>
 
-          <input type="file" accept="video/*" onChange={(e) => e.target.files && setVideo(e.target.files[0])} className="mb-3 block" />
+          <input type="file" accept="video/*" onChange={(e) => e.target.files && setVideo(e.target.files[0])} className="mb-3" />
 
           {hasVideo && (
             <button onClick={deleteCourseVideo} className="bg-red-600 px-3 py-1 rounded mb-3">
@@ -340,18 +394,9 @@ export default function Admin() {
             </button>
           )}
 
-          <textarea
-            rows={12}
-            value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
-            className="w-full bg-zinc-800 p-3 mb-4 rounded"
-          />
+          <textarea rows={12} value={markdown} onChange={(e) => setMarkdown(e.target.value)} className="w-full bg-zinc-800 p-3 mb-4 rounded" />
 
-          <button
-            onClick={updateCourse}
-            disabled={courseUploading}
-            className="bg-emerald-500 px-4 py-2 rounded hover:bg-emerald-600 transition"
-          >
+          <button onClick={updateCourse} disabled={courseUploading} className="bg-emerald-500 px-4 py-2 rounded">
             {courseUploading ? "Updating..." : "Update Course"}
           </button>
         </div>

@@ -4,6 +4,7 @@ interface Artwork {
   description?: string;
   image_url: string;
   price_inr?: number;
+  size?: string;        // ⭐ NEW
   is_sold?: boolean;
 }
 
@@ -23,71 +24,83 @@ export default function ArtworkModal({ artwork, onClose }: Props) {
     `Hello, I'm interested in "${artwork.title}" priced at ₹${artwork.price_inr}.`
   );
 
+  console.log(artwork.size);
+
   const whatsappLink = `https://wa.me/8100135695?text=${whatsappMessage}`;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-zinc-900 max-w-3xl w-full rounded-2xl overflow-hidden shadow-2xl animate-scale-in"
+        className="bg-zinc-900 max-w-5xl w-full rounded-2xl overflow-hidden shadow-2xl grid md:grid-cols-2"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Image */}
-        <div className="relative">
+        {/* ===== IMAGE SIDE ===== */}
+        <div className="bg-black flex items-center justify-center p-6">
           <img
             src={artwork.image_url}
             alt={artwork.title}
-            className="w-full max-h-[70vh] object-contain bg-black"
+            className="max-h-[80vh] object-contain"
           />
 
           {/* SOLD BADGE */}
           {artwork.is_sold && (
-            <span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
+            <span className="absolute top-6 left-6 bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
               Sold
             </span>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-2">{artwork.title}</h2>
+        {/* ===== DETAILS SIDE ===== */}
+        <div className="p-8 flex flex-col justify-between">
+          <div>
+            <h2 className="text-3xl font-bold mb-3">{artwork.title}</h2>
 
-          {artwork.description && (
-            <p className="text-zinc-400 mb-4">{artwork.description}</p>
-          )}
+            {artwork.description && (
+              <p className="text-zinc-400 mb-6">{artwork.description}</p>
+            )}
 
-          {/* Price */}
-          {artwork.price_inr && (
-            <div className="text-lg font-semibold mb-4">
-              ₹{artwork.price_inr.toLocaleString()}
-              {usd && (
-                <span className="text-zinc-400 ml-3">
-                  (${usd} USD)
-                </span>
-              )}
-            </div>
-          )}
+            {/* PRICE */}
+            {artwork.price_inr && (
+              <div className="text-xl font-semibold mb-3">
+                ₹{artwork.price_inr.toLocaleString()}
+                {usd && (
+                  <span className="text-zinc-400 ml-3 text-base">
+                    (${usd} USD)
+                  </span>
+                )}
+              </div>
+            )}
 
-          {/* BUY BUTTON */}
-          {!artwork.is_sold && (
-            <a
-              href={whatsappLink}
-              target="_blank"
-              className="inline-block bg-emerald-500 text-black px-5 py-2 rounded-lg font-medium hover:bg-emerald-400 transition"
+            {/* ⭐ SIZE DISPLAY */}
+            {artwork.size && (
+              <div className="text-sm text-zinc-400 mb-6">
+                Size: {artwork.size}
+              </div>
+            )}
+          </div>
+
+          {/* ACTION BUTTONS */}
+          <div className="flex gap-3">
+            {!artwork.is_sold && (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                className="bg-emerald-500 text-black px-5 py-2 rounded-lg font-medium hover:bg-emerald-400 transition"
+              >
+                Buy on WhatsApp
+              </a>
+            )}
+
+            <button
+              onClick={onClose}
+              className="px-5 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 transition"
             >
-              Buy on WhatsApp
-            </a>
-          )}
-
-          {/* Close */}
-          <button
-            onClick={onClose}
-            className="ml-3 px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600 transition"
-          >
-            Close
-          </button>
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
