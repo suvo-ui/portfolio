@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-artwork.jpg";
+import heroImage from "@/assets/Cough Syrup  (1).jpeg";
 
 export function HeroSection() {
   const scrollToGallery = () => {

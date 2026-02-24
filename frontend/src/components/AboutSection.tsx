@@ -1,4 +1,4 @@
-import artistPortrait from "@/assets/artist-portrait.jpg";
+import artistPortrait from "@/assets/WhatsApp Image 2026-02-10 at 9.45.24 PM.jpeg";
 
 export function AboutSection() {
   return (
@@ -28,8 +28,8 @@ export function AboutSection() {
               </p>
               
               <h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] mb-8">
-                Elena<br />
-                <span className="text-gradient">Voss</span>
+                Paper<br />
+                <span className="text-gradient">Slayer</span>
               </h2>
               
               <div className="space-y-6 text-muted-foreground leading-relaxed">

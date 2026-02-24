@@ -66,7 +66,7 @@ export function Header() {
             to="/"
             className="font-display text-2xl font-bold tracking-tight text-foreground hover:text-primary transition-colors"
           >
-            ELENA<span className="text-primary">.</span>VOSS
+            PAPER<span className="text-primary">.</span>SLAYER
           </Link>
 
           {/* Desktop Navigation */}
@@ -87,7 +87,7 @@ export function Header() {
               </Link>
             ))}
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/paper_slayer99/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"
@@ -132,7 +132,7 @@ export function Header() {
             </Link>
           ))}
           <a
-            href="https://instagram.com"
+            href="https://www.instagram.com/paper_slayer99/"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors py-2"

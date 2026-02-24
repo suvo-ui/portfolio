@@ -16,7 +16,7 @@ export function Footer() {
               to="/"
               className="font-display text-2xl font-bold tracking-tight text-foreground"
             >
-              ELENA<span className="text-primary">.</span>VOSS
+              PAPER<span className="text-primary">.</span>SLAYER
             </Link>
             <p className="mt-4 text-muted-foreground text-sm leading-relaxed max-w-xs">
               Contemporary expressionist art exploring the boundaries between light, shadow, and emotion.
@@ -61,16 +61,16 @@ export function Footer() {
                 className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm"
               >
                 <Mail className="h-4 w-4" />
-                hello@elenavoss.art
+                paperslayer99@gmail.com
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/paper_slayer99/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm"
               >
                 <Instagram className="h-4 w-4" />
-                @elenavoss.art
+                paper_slayer99
               </a>
             </div>
           </div>
@@ -78,7 +78,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-muted-foreground text-xs">
-            © {new Date().getFullYear()} Elena Voss. All rights reserved.
+            © {new Date().getFullYear()} Paper Slayer. All rights reserved.
           </p>
           <button
             onClick={scrollToTop}

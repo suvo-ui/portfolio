@@ -82,10 +82,10 @@ const Contact = () => {
                           Email
                         </p>
                         <a
-                          href="mailto:hello@elenavoss.art"
+                          href="mailto:paperslayer99@gmail.com"
                           className="text-foreground hover:text-primary transition-colors"
                         >
-                          hello@elenavoss.art
+                          paperslayer99@gmail.com
                         </a>
                       </div>
                     </div>
@@ -99,7 +99,7 @@ const Contact = () => {
                           Studio
                         </p>
                         <p className="text-foreground">
-                          Brooklyn, New York
+                          Sheoraphuli, West Bengal, India
                         </p>
                       </div>
                     </div>
