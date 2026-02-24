@@ -21,7 +21,7 @@ app.use(
   cors({
     origin: "http://localhost:8080", // frontend URL
     credentials: true,
-  })
+  }),
 );
 
 /* ---------- Body & Cookie Parsers ---------- */
@@ -39,14 +39,12 @@ app.get("/", (req, res) => {
 });
 
 /* ---------- API Routes ---------- */
-app.use("/api/upload", uploadRoutes);     // Cloudinary upload
-app.use("/api/admin", adminRoutes);       // Admin DB actions
+app.use("/api/upload", uploadRoutes); // Cloudinary upload
+app.use("/api/admin", adminRoutes); // Admin DB actions
 app.use("/api/artworks", artworksRoutes); // Public gallery
-app.use("/api/auth", authRoutes);         // Login / me / logout
-app.use("/api/course", courseRoutes);     // Course management
-app.use("/api", categoriesRoutes);   // Category management
-
-
+app.use("/api/auth", authRoutes); // Login / me / logout
+app.use("/api/course", courseRoutes); // Course management
+app.use("/api", categoriesRoutes); // Category management
 
 /* ---------- Database Test ---------- */
 app.get("/api/db-test", async (req, res) => {
