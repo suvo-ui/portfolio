@@ -9,18 +9,27 @@ const router = express.Router();
    CREATE ARTWORK
 ===================================================== */
 router.post("/artworks", adminAuth, async (req, res) => {
-  const { title, description, category_id, image_url, price_inr, size } = req.body;
+  const {
+    title,
+    description,
+    category_id,
+    image_url,
+    price_inr,
+    size,
+    available_for_print,
+  } = req.body;
 
   try {
     const result = await sql`
-      INSERT INTO artworks (title, description, category_id, image_url, price_inr, size)
+      INSERT INTO artworks (title, description, category_id, image_url, price_inr, size, available_for_print)
       VALUES (
         ${title},
         ${description ?? null},
         ${category_id},
         ${image_url},
         ${price_inr ?? null},
-        ${size ?? null}
+        ${size ?? null},
+        ${available_for_print ?? false}
       )
       RETURNING *;
     `;
@@ -38,7 +47,15 @@ router.post("/artworks", adminAuth, async (req, res) => {
 router.put("/artworks/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category_id, image_url, price_inr, size } = req.body;
+    const {
+      title,
+      description,
+      category_id,
+      image_url,
+      price_inr,
+      size,
+      available_for_print,
+    } = req.body;
 
     // 1️⃣ Get current artwork
     const existingRows = await sql`
@@ -72,7 +89,8 @@ router.put("/artworks/:id", adminAuth, async (req, res) => {
         category_id = ${category_id ?? existing.category_id},
         image_url = ${image_url ?? existing.image_url},
         price_inr = ${price_inr ?? existing.price_inr},
-        size_text = ${size ?? existing.size}
+        size = ${size ?? existing.size},
+        available_for_print = ${available_for_print ?? existing.available_for_print}
       WHERE id = ${id}
       RETURNING *;
     `;

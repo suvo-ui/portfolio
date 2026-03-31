@@ -1,11 +1,83 @@
-import { useState } from "react";
-import { Mail, MapPin, Instagram, Send } from "lucide-react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
+import { ArrowUpRight, Instagram, Mail, MapPin, Send, Sparkles } from "lucide-react";
+
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+
+const inquiryTypes = [
+  {
+    value: "inquiry",
+    label: "General Inquiry",
+    copy: "Start here for collector questions, introductions, or anything that needs a direct conversation.",
+    subjectPlaceholder: "What would you like to talk about?",
+    messagePlaceholder:
+      "Tell me what caught your eye, what you need, and what would make the reply most useful.",
+  },
+  {
+    value: "commission",
+    label: "Commission Request",
+    copy: "Best for custom work shaped around mood, scale, placement, deadline, and budget.",
+    subjectPlaceholder: "Commission idea, size, or visual direction",
+    messagePlaceholder:
+      "Share the mood, dimensions, timeline, budget range, and any references or emotions you want the piece to carry.",
+  },
+  {
+    value: "purchase",
+    label: "Purchase Inquiry",
+    copy: "Use this for pricing, availability, reservations, or questions about a specific piece.",
+    subjectPlaceholder: "Artwork title or piece you are asking about",
+    messagePlaceholder:
+      "Mention the artwork and anything you want to know about availability, pricing, framing, or shipping.",
+  },
+  {
+    value: "collaboration",
+    label: "Collaboration",
+    copy: "For projects, events, brand work, workshops, or any creative exchange worth exploring.",
+    subjectPlaceholder: "Project name or collaboration idea",
+    messagePlaceholder:
+      "Describe the project, timeline, deliverables, and why the collaboration feels like a strong fit.",
+  },
+] as const;
+
+const contactLinks = [
+  {
+    title: "Email",
+    value: "paperslayer99@gmail.com",
+    href: "mailto:paperslayer99@gmail.com",
+    copy: "The best place for detailed notes, references, and commission briefs.",
+    icon: Mail,
+  },
+  {
+    title: "Studio",
+    value: "Sheoraphuli, West Bengal, India",
+    copy: "Original works, commissions, and learning all come out of the same studio base.",
+    icon: MapPin,
+  },
+  {
+    title: "Instagram",
+    value: "@paper_slayer99",
+    href: "https://www.instagram.com/paper_slayer99/",
+    copy: "A quicker way to connect before we move into details.",
+    icon: Instagram,
+  },
+] as const;
+
+const premiumNotes = [
+  "Reply window is usually within 24-48 hours.",
+  "For commissions, mood, size, and budget help a lot.",
+  "Collector and collaboration inquiries are both welcome.",
+];
 
 const Contact = () => {
   const { toast } = useToast();
@@ -18,31 +90,53 @@ const Contact = () => {
     type: "inquiry",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const selectedInquiry =
+    inquiryTypes.find((inquiry) => inquiry.value === formData.type) ?? inquiryTypes[0];
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    toast({
-      title: "Message Sent",
-      description: "Thank you for reaching out. I'll get back to you soon!",
-    });
+      const data = await response.json().catch(() => null);
 
-    setFormData({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-      type: "inquiry",
-    });
-    setIsSubmitting(false);
+      if (!response.ok) {
+        throw new Error(data?.error || "Message could not be sent.");
+      }
+
+      toast({
+        title: "Message Sent",
+        description: `Your ${selectedInquiry.label.toLowerCase()} is in. I will get back to you soon.`,
+      });
+
+      setFormData({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+        type: "inquiry",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Message Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong while sending your message.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
@@ -51,187 +145,289 @@ const Contact = () => {
 
   return (
     <Layout>
-      <div className="pt-20 min-h-screen">
-        <section className="py-16 md:py-24">
+      <div className="relative min-h-screen overflow-hidden bg-background pt-20">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,hsl(var(--primary)/0.14),transparent_22%),radial-gradient(circle_at_86%_12%,hsl(var(--accent)/0.08),transparent_24%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)]" />
+          <div className="absolute inset-0 opacity-[0.05] [background-image:linear-gradient(hsl(var(--foreground)/0.12)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.12)_1px,transparent_1px)] [background-size:120px_120px]" />
+          <div className="absolute left-[-6rem] top-24 h-64 w-64 rounded-full bg-primary/14 blur-3xl" />
+          <div className="absolute bottom-10 right-[-7rem] h-72 w-72 rounded-full bg-orange-500/8 blur-3xl" />
+        </div>
+
+        <section className="relative py-12 md:py-16 lg:py-20">
           <div className="container mx-auto px-6 lg:px-12">
-            <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
-                {/* Contact Info */}
-                <div className="opacity-0 animate-fade-in-left">
-                  <p className="font-display text-sm uppercase tracking-[0.3em] text-primary mb-6">
-                    Get in Touch
-                  </p>
-                  
-                  <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] mb-8">
-                    Let's Create
-                    <br />
-                    <span className="text-gradient">Together</span>
-                  </h1>
-                  
-                  <p className="text-lg text-muted-foreground leading-relaxed mb-12 max-w-md">
-                    Whether you're interested in acquiring a piece, commissioning custom work, or simply want to say hello—I'd love to hear from you.
-                  </p>
+            <div className="mx-auto max-w-6xl">
+              <div className="max-w-3xl">
+                <p className="font-display text-sm uppercase tracking-[0.34em] text-primary">
+                  Get in Touch
+                </p>
 
-                  <div className="space-y-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Mail className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-display text-sm uppercase tracking-widest text-muted-foreground mb-1">
-                          Email
-                        </p>
-                        <a
-                          href="mailto:paperslayer99@gmail.com"
-                          className="text-foreground hover:text-primary transition-colors"
-                        >
-                          paperslayer99@gmail.com
-                        </a>
-                      </div>
-                    </div>
+                <h1 className="mt-5 font-display text-4xl font-bold leading-[1.02] text-foreground md:text-5xl lg:text-6xl">
+                  Let&apos;s create
+                  <span className="block text-gradient">together.</span>
+                </h1>
 
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <MapPin className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-display text-sm uppercase tracking-widest text-muted-foreground mb-1">
-                          Studio
-                        </p>
-                        <p className="text-foreground">
-                          Sheoraphuli, West Bengal, India
-                        </p>
-                      </div>
-                    </div>
+                <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+                  Whether you are interested in acquiring a piece, commissioning custom work, or
+                  starting a collaboration, this page should feel clear, premium, and easy to act
+                  on from the first screen.
+                </p>
+              </div>
 
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Instagram className="w-5 h-5 text-primary" />
+              <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
+                <div className="space-y-6">
+                  <div className="relative overflow-hidden border border-primary/18 bg-[linear-gradient(160deg,hsl(var(--card)/0.92),hsl(var(--background)/0.86))] p-7 shadow-[0_24px_80px_hsl(0_0%_0%/0.26)] backdrop-blur-xl">
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+                    <div className="absolute right-0 top-0 h-14 w-14 border-b border-l border-primary/20 bg-background/80" />
+
+                    <div className="relative">
+                      <div className="inline-flex items-center gap-2 border border-primary/20 bg-primary/10 px-4 py-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+                          Studio Notes
+                        </span>
                       </div>
-                      <div>
-                        <p className="font-display text-sm uppercase tracking-widest text-muted-foreground mb-1">
-                          Instagram
-                        </p>
-                        <a
-                          href="https://instagram.com"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary transition-colors"
-                        >
-                          @elenavoss.art
-                        </a>
+
+                      <p className="mt-6 max-w-md font-display text-2xl leading-[1.12] text-foreground">
+                        The strongest messages usually begin with the mood, the scale, and what you
+                        want the work to do in the room.
+                      </p>
+
+                      <div className="mt-6 space-y-3">
+                        {premiumNotes.map((note) => (
+                          <div
+                            key={note}
+                            className="border border-border/50 bg-background/35 px-4 py-3 text-sm leading-relaxed text-muted-foreground"
+                          >
+                            {note}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
+
+                  <div className="space-y-4">
+                    {contactLinks.map((item) => {
+                      const Icon = item.icon;
+
+                      if (item.href) {
+                        return (
+                          <a
+                            key={item.title}
+                            href={item.href}
+                            target={item.href.startsWith("http") ? "_blank" : undefined}
+                            rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                            className="group flex items-start gap-4 border border-border/55 bg-card/55 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card/70"
+                          >
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center border border-primary/20 bg-primary/10">
+                              <Icon className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-display text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                                {item.title}
+                              </p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <p className="text-foreground transition-colors group-hover:text-primary">
+                                  {item.value}
+                                </p>
+                                <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+                              </div>
+                              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                                {item.copy}
+                              </p>
+                            </div>
+                          </a>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={item.title}
+                          className="flex items-start gap-4 border border-border/55 bg-card/55 p-5"
+                        >
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center border border-primary/20 bg-primary/10">
+                            <Icon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-display text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                              {item.title}
+                            </p>
+                            <p className="mt-2 text-foreground">{item.value}</p>
+                            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                              {item.copy}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* Contact Form */}
-                <div className="opacity-0 animate-fade-in-right [animation-delay:200ms]">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Inquiry Type */}
-                    <div className="space-y-2">
-                      <Label htmlFor="type" className="font-display text-sm uppercase tracking-widest">
-                        Inquiry Type
-                      </Label>
-                      <select
-                        id="type"
-                        name="type"
-                        value={formData.type}
-                        onChange={handleChange}
-                        className="w-full h-11 px-4 bg-card border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                      >
-                        <option value="inquiry">General Inquiry</option>
-                        <option value="commission">Commission Request</option>
-                        <option value="purchase">Purchase Inquiry</option>
-                        <option value="collaboration">Collaboration</option>
-                      </select>
-                    </div>
+                <div className="relative">
+                  <div className="absolute inset-0 translate-x-3 translate-y-3 border border-primary/16 bg-primary/5" />
 
-                    {/* Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="font-display text-sm uppercase tracking-widest">
-                        Name
-                      </Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Your name"
-                        className="bg-card border-border focus:border-primary"
-                      />
-                    </div>
+                  <div className="relative overflow-hidden border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.94),hsl(var(--background)/0.92))] p-6 shadow-[0_28px_90px_hsl(0_0%_0%/0.3)] backdrop-blur-xl sm:p-8">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_28%)]" />
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
-                    {/* Email */}
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="font-display text-sm uppercase tracking-widest">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="your@email.com"
-                        className="bg-card border-border focus:border-primary"
-                      />
-                    </div>
+                    <div className="relative">
+                      <div className="flex items-start justify-between gap-4 border-b border-border/50 pb-5">
+                        <div>
+                          <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+                            {selectedInquiry.label}
+                          </p>
+                          <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-foreground">
+                            Start a conversation.
+                          </h2>
+                        </div>
 
-                    {/* Subject */}
-                    <div className="space-y-2">
-                      <Label htmlFor="subject" className="font-display text-sm uppercase tracking-widest">
-                        Subject
-                      </Label>
-                      <Input
-                        id="subject"
-                        name="subject"
-                        type="text"
-                        required
-                        value={formData.subject}
-                        onChange={handleChange}
-                        placeholder="What's this about?"
-                        className="bg-card border-border focus:border-primary"
-                      />
-                    </div>
+                        <div className="flex h-12 w-12 items-center justify-center border border-primary/25 bg-primary/10">
+                          <Send className="h-4 w-4 text-primary" />
+                        </div>
+                      </div>
 
-                    {/* Message */}
-                    <div className="space-y-2">
-                      <Label htmlFor="message" className="font-display text-sm uppercase tracking-widest">
-                        Message
-                      </Label>
-                      <Textarea
-                        id="message"
-                        name="message"
-                        required
-                        value={formData.message}
-                        onChange={handleChange}
-                        placeholder="Tell me about your project, the piece you're interested in, or just say hello..."
-                        rows={6}
-                        className="bg-card border-border focus:border-primary resize-none"
-                      />
-                    </div>
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                        {selectedInquiry.copy}
+                      </p>
 
-                    <Button
-                      type="submit"
-                      variant="gold"
-                      size="lg"
-                      disabled={isSubmitting}
-                      className="w-full"
-                    >
-                      {isSubmitting ? (
-                        "Sending..."
-                      ) : (
-                        <>
-                          Send Message
-                          <Send className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  </form>
+                      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <Label className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80">
+                              Inquiry Type
+                            </Label>
+                            <span className="font-display text-[11px] uppercase tracking-[0.22em] text-primary">
+                              {selectedInquiry.label}
+                            </span>
+                          </div>
+
+                          <Select
+                            value={formData.type}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                type: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-14 rounded-none border-primary/18 bg-[linear-gradient(180deg,hsl(var(--background)/0.78),hsl(var(--card)/0.7))] px-4 text-sm text-foreground shadow-[0_14px_36px_hsl(0_0%_0%/0.14)] ring-offset-0 focus:ring-1 focus:ring-primary focus:ring-offset-0 [&_svg]:text-primary [&_svg]:opacity-100">
+                              <SelectValue placeholder="Choose an inquiry type" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-none border-primary/18 bg-[linear-gradient(180deg,hsl(var(--popover))_0%,hsl(var(--card))_100%)] p-2 shadow-[0_22px_70px_hsl(0_0%_0%/0.4)]">
+                              {inquiryTypes.map((inquiry) => (
+                                <SelectItem
+                                  key={inquiry.value}
+                                  value={inquiry.value}
+                                  className="rounded-none px-8 py-3 text-sm text-foreground focus:bg-primary/12 focus:text-foreground data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary"
+                                >
+                                  {inquiry.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <p className="text-sm leading-relaxed text-muted-foreground">
+                            Choose the request that matches your goal, and the form will adjust the
+                            prompts for you.
+                          </p>
+                        </div>
+
+                        <div className="grid gap-5 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="name"
+                              className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80"
+                            >
+                              Name
+                            </Label>
+                            <Input
+                              id="name"
+                              name="name"
+                              type="text"
+                              required
+                              value={formData.name}
+                              onChange={handleChange}
+                              placeholder="Your name"
+                              className="h-12 border-border/60 bg-background/55 px-4 focus-visible:ring-primary focus-visible:ring-offset-0"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="email"
+                              className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80"
+                            >
+                              Email
+                            </Label>
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              required
+                              value={formData.email}
+                              onChange={handleChange}
+                              placeholder="your@email.com"
+                              className="h-12 border-border/60 bg-background/55 px-4 focus-visible:ring-primary focus-visible:ring-offset-0"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="subject"
+                            className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80"
+                          >
+                            Subject
+                          </Label>
+                          <Input
+                            id="subject"
+                            name="subject"
+                            type="text"
+                            required
+                            value={formData.subject}
+                            onChange={handleChange}
+                            placeholder={selectedInquiry.subjectPlaceholder}
+                            className="h-12 border-border/60 bg-background/55 px-4 focus-visible:ring-primary focus-visible:ring-offset-0"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="message"
+                            className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80"
+                          >
+                            Message
+                          </Label>
+                          <Textarea
+                            id="message"
+                            name="message"
+                            required
+                            value={formData.message}
+                            onChange={handleChange}
+                            placeholder={selectedInquiry.messagePlaceholder}
+                            rows={7}
+                            className="min-h-[180px] resize-none border-border/60 bg-background/55 px-4 py-3 focus-visible:ring-primary focus-visible:ring-offset-0"
+                          />
+                        </div>
+
+                        <Button
+                          type="submit"
+                          variant="gold"
+                          size="lg"
+                          disabled={isSubmitting}
+                          className="w-full shadow-[0_20px_60px_hsl(var(--primary)/0.2)]"
+                        >
+                          {isSubmitting ? (
+                            "Sending..."
+                          ) : (
+                            <>
+                              Send Message
+                              <Send className="ml-2 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

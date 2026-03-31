@@ -1,12 +1,12 @@
 import express from "express";
 import multer from "multer";
 import supabase from "../config/supabase.js";
+import adminAuth from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-/* ================= UPLOAD IMAGE TO SUPABASE ================= */
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", adminAuth, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -14,14 +14,12 @@ router.post("/", upload.single("image"), async (req, res) => {
 
     const file = req.file;
 
-    /* 🔐 SANITIZE filename (VERY IMPORTANT) */
     const cleanName = file.originalname
-      .replace(/\s+/g, "-")        // spaces → dash
-      .replace(/[^a-zA-Z0-9.-]/g, ""); // remove weird chars
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9.-]/g, "");
 
     const fileName = `${Date.now()}-${cleanName}`;
 
-    /* 📤 Upload to Supabase */
     const { error } = await supabase.storage
       .from("artworks")
       .upload(fileName, file.buffer, {
@@ -30,15 +28,11 @@ router.post("/", upload.single("image"), async (req, res) => {
 
     if (error) throw error;
 
-    /* 🌍 Get public URL */
-    const { data } = supabase.storage
-      .from("artworks")
-      .getPublicUrl(fileName);
+    const { data } = supabase.storage.from("artworks").getPublicUrl(fileName);
 
     res.json({ url: data.publicUrl });
-
   } catch (err) {
-    console.error("SUPABASE UPLOAD ERROR:", err);
+    console.error("UPLOAD ERROR:", err);
     res.status(500).json({ error: "Upload failed" });
   }
 });

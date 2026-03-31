@@ -24,17 +24,16 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { adminId: admin.id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ adminId: admin.id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     // 🔐 Set secure HttpOnly cookie
     res.cookie("adminToken", token, {
       httpOnly: true,
       secure: false, // ⚠️ change to true in production (HTTPS)
-      sameSite: "lax",
+      sameSite: "strict",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -58,9 +57,11 @@ router.get("/me", (req, res) => {
 
     res.json({
       success: true,
+      isAdmin: true,
       adminId: decoded.adminId,
     });
-  } catch {
+  } catch (err) {
+    console.error("Token verification failed:", err);
     res.status(401).json({ error: "Invalid or expired session" });
   }
 });
@@ -69,7 +70,8 @@ router.get("/me", (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("adminToken", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
+    path: "/",
     secure: false, // ⚠️ true in production
   });
 

@@ -7,8 +7,11 @@ import uploadRoutes from "./routes/upload.js";
 import adminRoutes from "./routes/admin.js";
 import artworksRoutes from "./routes/artworks.js";
 import authRoutes from "./routes/auth.js";
+import contactRoutes from "./routes/contact.js";
 import courseRoutes from "./routes/courses.js";
 import categoriesRoutes from "./routes/categories.js";
+import workshopRoutes from "./routes/workshops.js";
+
 import sql from "./config/db.js";
 
 const app = express();
@@ -16,10 +19,10 @@ const app = express();
 /* ---------- Security Middleware ---------- */
 app.use(helmet());
 
-/* ---------- CORS (required for HttpOnly cookies) ---------- */
+/* ---------- CORS ---------- */
 app.use(
   cors({
-    origin: "http://localhost:8080", // frontend URL
+    origin: "http://localhost:8080",
     credentials: true,
   }),
 );
@@ -39,14 +42,16 @@ app.get("/", (req, res) => {
 });
 
 /* ---------- API Routes ---------- */
-app.use("/api/upload", uploadRoutes); // Cloudinary upload
-app.use("/api/admin", adminRoutes); // Admin DB actions
-app.use("/api/artworks", artworksRoutes); // Public gallery
-app.use("/api/auth", authRoutes); // Login / me / logout
-app.use("/api/course", courseRoutes); // Course management
-app.use("/api", categoriesRoutes); // Category management
+app.use("/api/upload", uploadRoutes); // 🔼 artwork uploads
+app.use("/api/admin", adminRoutes); // 🔐 admin actions
+app.use("/api/artworks", artworksRoutes); // 🎨 gallery
+app.use("/api/auth", authRoutes); // 🔑 auth
+app.use("/api", contactRoutes); // ✉️ contact
+app.use("/api/course", courseRoutes); // 📚 course
+app.use("/api", categoriesRoutes); // 🏷 categories
+app.use("/api/workshops", workshopRoutes); // 🎥 workshops
 
-/* ---------- Database Test ---------- */
+/* ---------- DB Test ---------- */
 app.get("/api/db-test", async (req, res) => {
   try {
     const result = await sql`SELECT NOW()`;
@@ -55,7 +60,7 @@ app.get("/api/db-test", async (req, res) => {
       time: result[0].now,
     });
   } catch (err) {
-    console.error(err);
+    console.error("DB ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });

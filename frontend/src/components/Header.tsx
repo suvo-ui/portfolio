@@ -8,6 +8,7 @@ const navLinks = [
   { href: "/#gallery", label: "Gallery" },
   { href: "/#about", label: "About" },
   { href: "/courses", label: "Courses" },
+  { href: "/courses#workshops", label: "Workshops" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -30,25 +31,31 @@ export function Header() {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (href.startsWith("/#")) {
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
+    const hashIndex = href.indexOf("#");
+
+    if (hashIndex !== -1) {
       e.preventDefault();
-      const targetId = href.substring(2);
-      
-      if (location.pathname === "/") {
-        // Already on home page, just scroll
+
+      const path = href.substring(0, hashIndex) || "/";
+      const targetId = href.substring(hashIndex + 1);
+
+      const scrollToTarget = () => {
         const element = document.getElementById(targetId);
         element?.scrollIntoView({ behavior: "smooth" });
+      };
+
+      if (location.pathname === path) {
+        scrollToTarget();
       } else {
-        // Navigate to home then scroll
-        navigate("/");
-        setTimeout(() => {
-          const element = document.getElementById(targetId);
-          element?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
+        navigate(path);
+        setTimeout(scrollToTarget, 100);
       }
     }
-  };
+  }; // ✅ FIX: properly closed function
 
   return (
     <header
@@ -56,7 +63,7 @@ export function Header() {
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
         isScrolled
           ? "bg-background/95 backdrop-blur-md border-b border-border/50"
-          : "bg-transparent"
+          : "bg-transparent",
       )}
     >
       <div className="container mx-auto px-6 lg:px-12">
@@ -78,9 +85,12 @@ export function Header() {
                 onClick={(e) => handleNavClick(e, link.href)}
                 className={cn(
                   "font-display text-sm uppercase tracking-widest transition-colors link-underline",
-                  location.pathname === link.href || (link.href.startsWith("/#") && location.pathname === "/" && location.hash === link.href.substring(1))
+                  location.pathname === link.href ||
+                    (link.href.startsWith("/#") &&
+                      location.pathname === "/" &&
+                      location.hash === link.href.substring(1))
                     ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {link.label}
@@ -103,7 +113,11 @@ export function Header() {
             className="md:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </Button>
         </div>
       </div>
@@ -112,7 +126,7 @@ export function Header() {
       <div
         className={cn(
           "md:hidden absolute top-20 left-0 right-0 bg-background/98 backdrop-blur-md border-b border-border/50 transition-all duration-300 overflow-hidden",
-          isMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+          isMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0",
         )}
       >
         <nav className="container mx-auto px-6 py-6 flex flex-col gap-4">
@@ -125,7 +139,7 @@ export function Header() {
                 "font-display text-lg uppercase tracking-widest py-2 transition-colors",
                 location.pathname === link.href
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {link.label}
@@ -138,7 +152,9 @@ export function Header() {
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors py-2"
           >
             <Instagram className="h-5 w-5" />
-            <span className="font-display text-sm uppercase tracking-widest">Instagram</span>
+            <span className="font-display text-sm uppercase tracking-widest">
+              Instagram
+            </span>
           </a>
         </nav>
       </div>

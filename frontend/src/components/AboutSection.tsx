@@ -1,146 +1,157 @@
+import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
+
 import artistPortrait from "@/assets/WhatsApp Image 2026-02-10 at 9.45.24 PM.jpeg";
+import { Button } from "@/components/ui/button";
 
-export function AboutSection() {
+interface AboutSectionProps {
+  artworkCount: number;
+  availableCount: number;
+  curatedShelfCount: number;
+}
+
+export function AboutSection({
+  artworkCount,
+  availableCount,
+  curatedShelfCount,
+}: AboutSectionProps) {
+  const studioStats = [
+    {
+      value: String(artworkCount).padStart(2, "0"),
+      label: "Works in rotation",
+    },
+    {
+      value: String(availableCount).padStart(2, "0"),
+      label: "Open for inquiry",
+    },
+    {
+      value: String(curatedShelfCount).padStart(2, "0"),
+      label: "Curated shelves",
+    },
+    {
+      value: "WB",
+      label: "Studio base",
+    },
+  ];
+
+  const studioPrinciples = [
+    {
+      title: "Atmosphere First",
+      copy: "Each piece starts by locking onto mood before detail ever becomes the point.",
+    },
+    {
+      title: "Texture With Intent",
+      copy: "Layers are there to carry tension, not to decorate the surface for its own sake.",
+    },
+    {
+      title: "Made To Stay With You",
+      copy: "The strongest works land fast, then keep opening up the longer you live with them.",
+    },
+  ];
+
   return (
-    <div id="about">
-      {/* Hero Section */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            {/* Portrait */}
-            <div className="opacity-0 animate-fade-in-left order-2 lg:order-1">
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-gold opacity-20 blur-3xl" />
-                <div className="relative overflow-hidden shadow-image">
-                  <img
-                    src={artistPortrait}
-                    alt="Elena Voss - Contemporary Artist"
-                    className="w-full h-auto"
-                  />
-                </div>
-              </div>
-            </div>
+    <section id="about" className="relative overflow-hidden py-20 md:py-24">
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,hsl(var(--primary)/0.1),transparent_26%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card)/0.55)_100%)]" />
+      </div>
 
-            {/* Bio */}
-            <div className="order-1 lg:order-2 opacity-0 animate-fade-in-right [animation-delay:200ms]">
-              <p className="font-display text-sm uppercase tracking-[0.3em] text-primary mb-6">
-                About the Artist
+      <div className="relative container mx-auto px-6 lg:px-12">
+        <div className="grid gap-12 lg:grid-cols-[minmax(240px,0.64fr)_minmax(0,1.36fr)] lg:items-center">
+          <div className="relative mx-auto w-full max-w-[290px] lg:mx-0">
+            <div className="absolute -inset-4 bg-primary/10 blur-3xl" />
+            <div className="relative overflow-hidden border border-border/60 bg-card/70 p-3 shadow-[0_20px_56px_hsl(0_0%_0%/0.26)] backdrop-blur-sm">
+              <div className="overflow-hidden border border-border/50 bg-background/60">
+                <img
+                  src={artistPortrait}
+                  alt="Paper Slayer studio portrait"
+                  className="aspect-[4/5] w-full object-cover object-top"
+                />
+              </div>
+              <p className="mt-4 font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+                Studio Portrait
               </p>
-              
-              <h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] mb-8">
-                Paper<br />
-                <span className="text-gradient">Slayer</span>
-              </h2>
-              
-              <div className="space-y-6 text-muted-foreground leading-relaxed">
-                <p>
-                  Born in the vibrant heart of Brooklyn, Elena Voss has spent over a decade translating the raw energy of urban landscapes and natural phenomena into bold, expressive works that resonate with contemporary audiences.
-                </p>
-                <p>
-                  Her signature style—characterized by thick impasto strokes, warm amber tones, and a fearless approach to light and shadow—draws from both the Abstract Expressionist tradition and the immediacy of street art culture.
-                </p>
-                <p>
-                  "I paint what moves me," Elena explains. "Whether it's the neon-soaked streets of Tokyo at midnight or the quiet power of an ocean wave catching the last light of day—there's a universal energy in these moments that I try to capture."
-                </p>
-              </div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Kept to the side so the section still reads like story first, portrait second.
+              </p>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-card">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { value: "12+", label: "Years Creating" },
-              { value: "200+", label: "Original Works" },
-              { value: "50+", label: "Exhibitions" },
-              { value: "15", label: "Countries Collected" },
-            ].map((stat, index) => (
-              <div
-                key={stat.label}
-                className="text-center opacity-0 animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <p className="font-display text-4xl md:text-5xl font-bold text-gradient mb-2">
-                  {stat.value}
-                </p>
-                <p className="text-sm text-muted-foreground uppercase tracking-widest font-display">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Philosophy Section */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-8">
-              Artistic Philosophy
-            </h2>
-            
-            <blockquote className="text-2xl md:text-3xl text-muted-foreground leading-relaxed italic font-light">
-              "Every brushstroke is a conversation between chaos and control. I don't paint to represent reality—I paint to capture its 
-              <span className="text-foreground not-italic font-medium"> feeling</span>."
-            </blockquote>
-            
-            <p className="mt-8 text-primary font-display uppercase tracking-widest text-sm">
-              — Elena Voss
+          <div>
+            <p className="mb-6 font-display text-sm uppercase tracking-[0.32em] text-primary">
+              Studio Note
             </p>
-          </div>
-        </div>
-      </section>
 
-      {/* Process Section */}
-      <section className="py-16 md:py-24 bg-card/50">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">
-              The Creative Process
+            <h2 className="max-w-3xl font-display text-4xl font-bold leading-[1.02] text-foreground md:text-5xl lg:text-6xl">
+              A studio built on contrast, atmosphere, and repeat looking.
             </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  step: "01",
-                  title: "Observation",
-                  description: "Every piece begins with immersion—walking city streets, watching waves crash, observing the play of light at golden hour.",
-                },
-                {
-                  step: "02",
-                  title: "Exploration",
-                  description: "Quick sketches and color studies capture the essence of a moment before it fades, preserving the raw emotional response.",
-                },
-                {
-                  step: "03",
-                  title: "Expression",
-                  description: "In the studio, intuition takes over. Layers build upon layers until the canvas holds that same electric energy.",
-                },
-              ].map((item, index) => (
-                <div
-                  key={item.step}
-                  className="text-center opacity-0 animate-fade-in"
-                  style={{ animationDelay: `${index * 150}ms` }}
-                >
-                  <p className="font-display text-6xl font-bold text-primary/20 mb-4">
-                    {item.step}
-                  </p>
-                  <h3 className="font-display text-xl font-semibold text-foreground mb-3">
-                    {item.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {item.description}
+
+            <div className="mt-8 max-w-2xl space-y-5 text-base leading-relaxed text-muted-foreground">
+              <p>
+                Paper Slayer leans into bold contrast, dense texture, and the cinematic pull of
+                light moving through dark surfaces. The goal is not just to make a striking first
+                impression, but to create work that keeps revealing more once the room quiets down.
+              </p>
+              <p>
+                That same approach carries into commissions and courses. The work stays expressive,
+                the presentation stays sharp, and the whole experience is meant to feel grounded in
+                one visual world instead of disconnected pages.
+              </p>
+            </div>
+
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Button variant="gold" size="lg" asChild className="shadow-[0_20px_60px_hsl(var(--primary)/0.2)]">
+                <Link to="/contact">
+                  Start a Conversation
+                  <ArrowUpRight />
+                </Link>
+              </Button>
+              <Button variant="hero" size="lg" asChild className="border-primary/35 bg-background/10">
+                <Link to="/courses">Explore Courses</Link>
+              </Button>
+            </div>
+
+            <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden border border-border/50 bg-border/40 md:grid-cols-4">
+              {studioStats.map((stat) => (
+                <div key={stat.label} className="bg-background/75 p-4">
+                  <p className="font-display text-3xl font-bold text-foreground">{stat.value}</p>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+                    {stat.label}
                   </p>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </section>
-    </div>
+
+        <div className="mt-16 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="border border-border/60 bg-card/55 p-8 backdrop-blur-sm">
+            <p className="font-display text-xs uppercase tracking-[0.34em] text-primary">
+              Working Principle
+            </p>
+            <blockquote className="mt-6 font-display text-3xl leading-tight text-foreground md:text-4xl">
+              "The image should hit immediately, then linger longer than the first glance."
+            </blockquote>
+            <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              That balance between impact and staying power guides the composition, the palette,
+              and the pacing of the entire collection.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {studioPrinciples.map((item) => (
+              <div
+                key={item.title}
+                className="border border-border/60 bg-background/45 p-5 backdrop-blur-sm"
+              >
+                <p className="font-display text-sm uppercase tracking-[0.22em] text-foreground">
+                  {item.title}
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
