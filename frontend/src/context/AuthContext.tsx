@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode } from "react";
+import { apiUrl } from "@/lib/api";
 
 type AuthContextType = {
   isAdmin: boolean;
@@ -18,18 +19,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuthStatus = async () => {
     try {
       console.log("🔍 Checking auth...");
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/auth/me`,
-        {
-          credentials: "include",
-          cache: "no-cache",
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
+      const res = await fetch(apiUrl("/api/auth/me"), {
+        credentials: "include",
+        cache: "no-cache",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
-      );
+      });
 
       console.log("📡 /me response:", res.status);
 
@@ -63,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
+      await fetch(apiUrl("/api/auth/logout"), {
         method: "POST",
         credentials: "include",
       });

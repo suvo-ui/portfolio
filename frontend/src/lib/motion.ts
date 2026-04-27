@@ -2,7 +2,7 @@ import { Variants } from "framer-motion";
 import { Transition } from "framer-motion";
 
 /* ================= BASE EASING ================= */
-export const ease = [0.25, 0.1, 0.25, 1] as any;
+export const ease = [0.25, 0.1, 0.25, 1] as const;
 
 /* ================= FADE UP ================= */
 export const fadeUp: Variants = {

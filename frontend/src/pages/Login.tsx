@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import { apiUrl } from "@/lib/api";
 
 const itemVariants = {
   hidden: { opacity: 0, y: 24 },
@@ -71,7 +72,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+      const res = await fetch(apiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -85,8 +86,8 @@ export default function Login() {
 
       await refreshAuth();
       navigate("/admin", { replace: true });
-    } catch (err: any) {
-      alert(err.message || "Invalid login");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Invalid login");
       setLoading(false);
     }
   };
@@ -106,8 +107,8 @@ export default function Login() {
       />
       <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(hsl(var(--foreground)/0.14)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.14)_1px,transparent_1px)] [background-size:120px_120px]" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-6 py-8 lg:px-10">
-        <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] lg:items-center">
+      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid w-full gap-8 lg:gap-12 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] xl:items-center">
           <motion.div initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}>
             <motion.div variants={itemVariants}>
               <Badge
@@ -125,7 +126,7 @@ export default function Login() {
 
             <motion.h1
               variants={itemVariants}
-              className="max-w-4xl font-display text-4xl font-bold leading-[0.95] text-foreground sm:text-5xl lg:text-7xl"
+              className="max-w-4xl font-display text-3xl font-bold leading-[0.95] text-foreground sm:text-4xl lg:text-5xl xl:text-7xl"
             >
               Beautiful access
               <span className="block text-gradient">for the control room.</span>
@@ -163,7 +164,7 @@ export default function Login() {
             initial={{ opacity: 0, x: 32 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,hsl(var(--card)/0.88),hsl(var(--background)/0.96))] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-2xl"
+            className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,hsl(var(--card)/0.88),hsl(var(--background)/0.96))] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-2xl sm:rounded-[28px]"
           >
             <motion.div
               className="absolute left-0 top-0 h-px w-40 bg-gradient-to-r from-primary via-white/70 to-transparent"

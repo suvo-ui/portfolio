@@ -1,11 +1,28 @@
 import express from "express";
 
 import sql from "../config/db.js";
+import { sendRouteError } from "../lib/http.js";
+import {
+  ensureAllowedValue,
+  requireEmail,
+  requireString,
+} from "../lib/validation.js";
 import adminAuth from "../middlewares/adminAuth.js";
+import createRateLimiter from "../middlewares/rateLimit.js";
 
 const router = express.Router();
-
-const allowedRequestTypes = new Set(["inquiry", "commission", "purchase", "collaboration"]);
+const allowedRequestTypes = new Set([
+  "inquiry",
+  "commission",
+  "purchase",
+  "collaboration",
+]);
+const contactLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  keyPrefix: "contact-form",
+  message: "Too many contact requests. Please wait before trying again.",
+});
 
 let contactTableReady;
 
@@ -27,23 +44,32 @@ function ensureContactTable() {
   return contactTableReady;
 }
 
-router.post("/contact", async (req, res) => {
+router.post("/contact", contactLimiter, async (req, res) => {
   try {
     await ensureContactTable();
 
-    const requestType = String(req.body?.type || "").trim().toLowerCase();
-    const name = String(req.body?.name || "").trim();
-    const email = String(req.body?.email || "").trim();
-    const subject = String(req.body?.subject || "").trim();
-    const message = String(req.body?.message || "").trim();
-
-    if (!allowedRequestTypes.has(requestType)) {
-      return res.status(400).json({ error: "Invalid request type" });
+    if (String(req.body?.website || "").trim()) {
+      return res.status(400).json({ error: "Invalid request" });
     }
 
-    if (!name || !email || !subject || !message) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
+    const requestType = ensureAllowedValue(
+      String(req.body?.type || "").trim().toLowerCase(),
+      allowedRequestTypes,
+      { field: "request type" },
+    );
+    const name = requireString(req.body?.name, {
+      field: "name",
+      maxLength: 120,
+    });
+    const email = requireEmail(req.body?.email);
+    const subject = requireString(req.body?.subject, {
+      field: "subject",
+      maxLength: 160,
+    });
+    const message = requireString(req.body?.message, {
+      field: "message",
+      maxLength: 4000,
+    });
 
     const created = await sql`
       INSERT INTO contact_requests (request_type, name, email, subject, message)
@@ -51,13 +77,12 @@ router.post("/contact", async (req, res) => {
       RETURNING id, request_type, name, email, subject, message, created_at;
     `;
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       request: created[0],
     });
   } catch (err) {
-    console.error("CONTACT REQUEST ERROR:", err);
-    res.status(500).json({ error: "Failed to submit contact request" });
+    return sendRouteError(res, err, "Failed to submit contact request");
   }
 });
 
@@ -72,10 +97,9 @@ router.get("/admin/contact-requests", adminAuth, async (req, res) => {
       LIMIT 12;
     `;
 
-    res.json(requests);
+    return res.json(requests);
   } catch (err) {
-    console.error("FETCH CONTACT REQUESTS ERROR:", err);
-    res.status(500).json({ error: "Failed to fetch contact requests" });
+    return sendRouteError(res, err, "Failed to fetch contact requests");
   }
 });
 

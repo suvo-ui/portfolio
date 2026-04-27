@@ -1,6 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { MouseEvent } from "react";
 import { ArrowUp, ArrowUpRight, Instagram, Mail, MapPin } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,12 +13,12 @@ const footerLinks = [
   {
     href: "/#about",
     label: "About",
-    description: "Learn more about the artist and the process.",
+    description: "Learn more about the artist and the studio approach.",
   },
   {
     href: "/courses",
     label: "Courses",
-    description: "Explore workshops, learning sessions, and updates.",
+    description: "Explore learning sessions and workshop updates.",
   },
   {
     href: "/contact",
@@ -47,8 +47,7 @@ export function Footer() {
   const navigate = useNavigate();
 
   const scrollToSection = (targetId: string) => {
-    const element = document.getElementById(targetId);
-    element?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleFooterLink = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -75,87 +74,99 @@ export function Footer() {
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,hsl(var(--primary)/0.16),transparent_28%),radial-gradient(circle_at_82%_12%,hsl(var(--accent)/0.08),transparent_24%),linear-gradient(180deg,transparent_0%,hsl(var(--background)/0.72)_100%)]" />
         <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(hsl(var(--foreground)/0.12)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.12)_1px,transparent_1px)] [background-size:110px_110px] [mask-image:linear-gradient(to_bottom,black,transparent_88%)]" />
-        <div className="absolute left-[-5rem] top-12 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute bottom-0 right-[-6rem] h-64 w-64 rounded-full bg-orange-500/10 blur-3xl" />
       </div>
 
-      <div className="relative container mx-auto px-6 pb-8 pt-14 lg:px-12 lg:pb-10 lg:pt-20">
-        <div className="relative overflow-hidden border border-primary/15 bg-card/70 p-8 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl md:p-10 lg:p-12">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pb-8 pt-12 sm:px-6 sm:pt-16 lg:px-8 lg:pb-10 lg:pt-20">
+        <div className="relative overflow-hidden border border-primary/15 bg-card/70 p-5 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl sm:p-8 lg:p-10">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-end">
-            <div className="max-w-2xl">
-              <p className="mb-5 font-display text-xs uppercase tracking-[0.38em] text-primary">
+
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end">
+            <div className="min-w-0">
+              <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
                 Closing Frame
               </p>
-              <h2 className="max-w-xl font-display text-4xl font-bold leading-[0.95] text-foreground md:text-5xl lg:text-6xl">
+              <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold leading-[1] text-foreground sm:text-4xl md:text-5xl">
                 Keep the energy moving beyond the last scroll.
               </h2>
-              <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
-                Explore available work, start a commission conversation, or dive into the
-                learning side of the studio. The footer should feel like a real next step, not a
-                dead end.
+              <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Explore available work, start a commission conversation, or move
+                into the learning side of the studio without the footer feeling
+                like dead space.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Button variant="gold" size="lg" asChild className="shadow-[0_20px_60px_hsl(var(--primary)/0.22)]">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4">
+                <Button
+                  variant="gold"
+                  size="lg"
+                  asChild
+                  className="w-full shadow-[0_20px_60px_hsl(var(--primary)/0.22)]"
+                >
                   <Link to="/#gallery" onClick={(event) => handleFooterLink(event, "/#gallery")}>
                     View Collection
                     <ArrowUpRight />
                   </Link>
                 </Button>
-                <Button variant="hero" size="lg" asChild className="border-primary/35 bg-background/10">
+                <Button
+                  variant="hero"
+                  size="lg"
+                  asChild
+                  className="w-full border-primary/35 bg-background/10"
+                >
                   <Link to="/contact">Start a Project</Link>
                 </Button>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
               {focusAreas.map((item) => (
                 <div
                   key={item.title}
                   className="border border-border/60 bg-background/50 p-5 transition-colors duration-300 hover:border-primary/40"
                 >
-                  <p className="font-display text-xs uppercase tracking-[0.28em] text-primary">
+                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
                     {item.title}
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.copy}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    {item.copy}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(240px,0.7fr)_minmax(280px,0.9fr)]">
-          <div className="max-w-md">
+        <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
             <Link
               to="/"
-              className="font-display text-3xl font-bold tracking-tight text-foreground transition-colors hover:text-primary"
+              className="font-display text-2xl font-bold tracking-tight text-foreground transition-colors hover:text-primary sm:text-3xl"
             >
               PAPER<span className="text-primary">.</span>SLAYER
             </Link>
-            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-              Expressive contemporary work built around texture, tension, and motion. Created for
-              collectors, commissions, and artists who want more atmosphere in the frame.
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Expressive contemporary work built around texture, tension, and
+              motion. Created for collectors, commissions, and artists who want
+              more atmosphere in the frame.
             </p>
-            <div className="mt-6 inline-flex items-center gap-3 border border-border/60 bg-background/40 px-4 py-3 text-sm text-muted-foreground backdrop-blur-sm">
-              <MapPin className="h-4 w-4 text-primary" />
+            <div className="mt-5 inline-flex max-w-full items-center gap-3 border border-border/60 bg-background/40 px-4 py-3 text-sm text-muted-foreground backdrop-blur-sm">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
               <span>Sheoraphuli, West Bengal, India</span>
             </div>
           </div>
 
           <div>
-            <p className="mb-5 font-display text-xs uppercase tracking-[0.32em] text-primary">
+            <p className="mb-4 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
               Navigate
             </p>
-            <nav className="space-y-4">
+            <nav className="grid gap-3">
               {footerLinks.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
                   onClick={(event) => handleFooterLink(event, link.href)}
-                  className="group block border-b border-border/40 pb-4 transition-colors duration-300 hover:border-primary/40"
+                  className="group border border-border/40 bg-background/35 p-4 transition-colors duration-300 hover:border-primary/40"
                 >
-                  <span className="font-display text-lg uppercase tracking-[0.18em] text-foreground transition-colors group-hover:text-primary">
+                  <span className="font-display text-sm uppercase tracking-[0.18em] text-foreground transition-colors group-hover:text-primary">
                     {link.label}
                   </span>
                   <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
@@ -167,20 +178,20 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="mb-5 font-display text-xs uppercase tracking-[0.32em] text-primary">
+            <p className="mb-4 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
               Connect
             </p>
-            <div className="space-y-4">
+            <div className="grid gap-3">
               <a
                 href="mailto:paperslayer99@gmail.com"
-                className="group flex items-start gap-4 border border-border/50 bg-background/35 p-4 transition-colors duration-300 hover:border-primary/40"
+                className="group flex min-h-12 items-start gap-4 border border-border/50 bg-background/35 p-4 transition-colors duration-300 hover:border-primary/40"
               >
-                <Mail className="mt-0.5 h-4 w-4 text-primary" />
-                <div>
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div className="min-w-0">
                   <p className="font-display text-sm uppercase tracking-[0.18em] text-foreground">
                     Email
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
+                  <p className="mt-1 break-all text-sm text-muted-foreground transition-colors group-hover:text-foreground">
                     paperslayer99@gmail.com
                   </p>
                 </div>
@@ -190,10 +201,10 @@ export function Footer() {
                 href="https://www.instagram.com/paper_slayer99/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-start gap-4 border border-border/50 bg-background/35 p-4 transition-colors duration-300 hover:border-primary/40"
+                className="group flex min-h-12 items-start gap-4 border border-border/50 bg-background/35 p-4 transition-colors duration-300 hover:border-primary/40"
               >
-                <Instagram className="mt-0.5 h-4 w-4 text-primary" />
-                <div>
+                <Instagram className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div className="min-w-0">
                   <p className="font-display text-sm uppercase tracking-[0.18em] text-foreground">
                     Instagram
                   </p>
@@ -204,13 +215,31 @@ export function Footer() {
               </a>
             </div>
           </div>
+
+          <div>
+            <p className="mb-4 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+              Studio
+            </p>
+            <div className="grid gap-3">
+              {focusAreas.map((item) => (
+                <div key={item.title} className="border border-border/50 bg-background/35 p-4">
+                  <p className="font-display text-sm uppercase tracking-[0.18em] text-foreground">
+                    {item.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {item.copy}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-border/50 pt-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+        <div className="mt-10 flex flex-col gap-4 border-t border-border/50 pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>Copyright {new Date().getFullYear()} Paper Slayer. All rights reserved.</p>
           <button
             onClick={scrollToTop}
-            className="group inline-flex items-center gap-2 self-start font-display text-xs uppercase tracking-[0.32em] text-muted-foreground transition-colors hover:text-primary md:self-auto"
+            className="group inline-flex min-h-10 items-center gap-2 self-start font-display text-[11px] uppercase tracking-[0.32em] text-muted-foreground transition-colors hover:text-primary sm:self-auto"
           >
             Back to top
             <ArrowUp className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-1" />

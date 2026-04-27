@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,16 +8,25 @@ import {
   Clapperboard,
   Clock3,
   Layers3,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
   Sparkles,
-  Trash2,
   Users,
+  Volume2,
+  X,
 } from "lucide-react";
 
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { apiUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { fadeUp, scaleIn, stagger, hoverLift, buttonTap } from "@/lib/motion";
+import { fadeUp, scaleIn, stagger, hoverLift } from "@/lib/motion";
 
 interface CoursePage {
   id: boolean;
@@ -25,6 +34,11 @@ interface CoursePage {
   video_path?: string | null;
   video_url?: string | null;
   updated_at?: string | null;
+}
+
+interface CourseDemoVideo {
+  position: number;
+  youtube_url: string;
 }
 
 interface Workshop {
@@ -37,9 +51,23 @@ interface Workshop {
   max_seats?: number | null;
   image_url?: string | null;
   video_url?: string | null;
+  venue?: string | null;
   is_active?: boolean;
+  completed?: boolean;
   created_at?: string | null;
 }
+
+type LegacyFullscreenElement = HTMLDivElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+  mozRequestFullScreen?: () => Promise<void> | void;
+  msRequestFullscreen?: () => Promise<void> | void;
+};
+
+type LegacyFullscreenDocument = Document & {
+  webkitExitFullscreen?: () => Promise<void> | void;
+  mozCancelFullScreen?: () => Promise<void> | void;
+  msExitFullscreen?: () => Promise<void> | void;
+};
 
 const shellClassName =
   "relative overflow-hidden border border-primary/16 bg-[linear-gradient(180deg,hsl(var(--card)/0.94),hsl(var(--background)/0.96))] shadow-[0_30px_90px_hsl(0_0%_0%/0.34)] backdrop-blur-xl";
@@ -75,6 +103,13 @@ const formatPrice = (value?: number | null) => {
   return `INR ${value.toLocaleString()}`;
 };
 
+const formatTime = (seconds: number) => {
+  if (!seconds || Number.isNaN(seconds)) return "00:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+};
+
 const extractLeadParagraph = (markdown: string) => {
   return (
     markdown
@@ -85,16 +120,59 @@ const extractLeadParagraph = (markdown: string) => {
   );
 };
 
+const extractYouTubeVideoId = (value?: string | null) => {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+
+    if (hostname === "youtu.be") {
+      return url.pathname.slice(1).split("/")[0] || null;
+    }
+
+    const queryVideoId = url.searchParams.get("v");
+    if (queryVideoId) return queryVideoId;
+
+    const pathSegments = url.pathname.split("/").filter(Boolean);
+    if (pathSegments[0] === "shorts" || pathSegments[0] === "embed") {
+      return pathSegments[1] || null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const buildYouTubeThumbnailUrl = (value?: string | null) => {
+  const videoId = extractYouTubeVideoId(value);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
 export default function Courses() {
   const { isAdmin } = useAuth();
   const location = useLocation();
   const [course, setCourse] = useState<CoursePage | null | undefined>(
     undefined,
   );
+  const [demoVideos, setDemoVideos] = useState<CourseDemoVideo[]>([]);
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(
     new Set(),
   );
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const hideControlsTimerRef = useRef<number | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoTime, setVideoTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [volume, setVolume] = useState(0.88);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
 
   type CourseModule = {
     title: string;
@@ -150,14 +228,15 @@ export default function Courses() {
     (sum, module) => sum + module.lessons.length,
     0,
   );
+  const videoUrl = course?.video_url || null;
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course`)
+    fetch(apiUrl("/api/course"))
       .then((res) => res.json())
       .then(setCourse)
       .catch(() => setCourse(null));
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/workshops`)
+    fetch(apiUrl("/api/workshops"))
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setWorkshops(data);
@@ -165,6 +244,14 @@ export default function Courses() {
         else setWorkshops([]);
       })
       .catch(() => setWorkshops([]));
+
+    fetch(apiUrl("/api/course-demo-videos"))
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setDemoVideos(data);
+        else setDemoVideos([]);
+      })
+      .catch(() => setDemoVideos([]));
   }, []);
 
   useEffect(() => {
@@ -178,17 +265,181 @@ export default function Courses() {
         document
           .getElementById(anchor)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        if (anchor === "courses" && videoRef.current) {
+          const playAttempt = videoRef.current.play();
+          if (playAttempt && typeof playAttempt.catch === "function") {
+            playAttempt.catch(() => {});
+          }
+        }
       }, 120);
       return () => clearTimeout(tm);
     }
+
     target.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [location.pathname, location.hash]);
+
+    if (anchor === "courses" && videoRef.current) {
+      const playAttempt = videoRef.current.play();
+      if (playAttempt && typeof playAttempt.catch === "function") {
+        playAttempt.catch(() => {});
+      }
+    }
+  }, [location.pathname, location.hash, videoUrl]);
+
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const onLoadedMetadata = () => setVideoDuration(video.duration || 0);
+    const onTimeUpdate = () => setVideoTime(video.currentTime);
+    const onPlay = () => setIsVideoPlaying(true);
+    const onPause = () => setIsVideoPlaying(false);
+
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("play", onPlay);
+    video.addEventListener("pause", onPause);
+
+    return () => {
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("play", onPlay);
+      video.removeEventListener("pause", onPause);
+    };
+  }, [videoUrl]);
+
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    video.volume = volume;
+    video.muted = isMuted;
+    video.playbackRate = playbackRate;
+  }, [volume, isMuted, playbackRate]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const resetHideTimer = () => {
+      setShowControls(true);
+      if (hideControlsTimerRef.current) {
+        window.clearTimeout(hideControlsTimerRef.current);
+      }
+      hideControlsTimerRef.current = window.setTimeout(() => {
+        setShowControls(false);
+      }, 3200);
+    };
+
+    const container = videoContainerRef.current;
+    if (!container) return;
+
+    const onMouseMove = () => resetHideTimer();
+    const onMouseLeave = () => {
+      if (hideControlsTimerRef.current) {
+        window.clearTimeout(hideControlsTimerRef.current);
+      }
+      setShowControls(false);
+    };
+
+    const onClick = () => resetHideTimer();
+
+    container.addEventListener("mousemove", onMouseMove);
+    container.addEventListener("mouseleave", onMouseLeave);
+    container.addEventListener("touchstart", onMouseMove);
+    container.addEventListener("click", onClick);
+
+    resetHideTimer();
+
+    return () => {
+      container.removeEventListener("mousemove", onMouseMove);
+      container.removeEventListener("mouseleave", onMouseLeave);
+      container.removeEventListener("touchstart", onMouseMove);
+      container.removeEventListener("click", onClick);
+      if (hideControlsTimerRef.current) {
+        window.clearTimeout(hideControlsTimerRef.current);
+      }
+    };
+  }, [videoUrl]);
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+
+    if (isVideoPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+  };
+
+  const handleSeek = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(event.target.value);
+    if (!videoRef.current || Number.isNaN(value)) return;
+    videoRef.current.currentTime = value;
+    setVideoTime(value);
+  };
+
+  const handleVolumeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(event.target.value);
+    if (Number.isNaN(value)) return;
+    setVolume(value);
+    setIsMuted(value <= 0);
+  };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (videoRef.current) videoRef.current.muted = next;
+      return next;
+    });
+  };
+
+  const togglePlaybackRate = () => {
+    setPlaybackRate((prev) => {
+      const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+      const nextIndex = (rates.indexOf(prev) + 1) % rates.length;
+      return rates[nextIndex];
+    });
+  };
+
+  const toggleFullscreen = () => {
+    const container = videoContainerRef.current as LegacyFullscreenElement | null;
+    const legacyDocument = document as LegacyFullscreenDocument;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) container.requestFullscreen();
+      else if (container.webkitRequestFullscreen)
+        container.webkitRequestFullscreen();
+      else if (container.mozRequestFullScreen)
+        container.mozRequestFullScreen();
+      else if (container.msRequestFullscreen)
+        container.msRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (legacyDocument.webkitExitFullscreen)
+        legacyDocument.webkitExitFullscreen();
+      else if (legacyDocument.mozCancelFullScreen)
+        legacyDocument.mozCancelFullScreen();
+      else if (legacyDocument.msExitFullscreen)
+        legacyDocument.msExitFullscreen();
+    }
+  };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this workshop?")) return;
 
     const response = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/workshops/${id}`,
+      apiUrl(`/api/workshops/${id}`),
       {
         method: "DELETE",
         credentials: "include",
@@ -203,6 +454,43 @@ export default function Courses() {
     }
 
     setWorkshops((prev) => prev.filter((workshop) => workshop.id !== id));
+  };
+
+  const handleToggleComplete = async (
+    id: number,
+    currentCompleted: boolean,
+  ) => {
+    const newCompleted = !currentCompleted;
+    const action = newCompleted ? "complete" : "incomplete";
+
+    if (!confirm(`Mark this workshop as ${action}?`)) return;
+
+    const response = await fetch(
+      apiUrl(`/api/workshops/${id}`),
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ completed: newCompleted }),
+      },
+    );
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      alert(data?.error || `Failed to mark workshop as ${action}`);
+      return;
+    }
+
+    setWorkshops((prev) =>
+      prev.map((workshop) =>
+        workshop.id === id
+          ? { ...workshop, completed: newCompleted }
+          : workshop,
+      ),
+    );
   };
 
   const toggleSection = (index: number) => {
@@ -262,11 +550,13 @@ export default function Courses() {
     );
   }
 
-  const videoUrl = course.video_url || null;
   const leadParagraph = extractLeadParagraph(course.markdown);
   const liveWorkshops = workshops.filter(
-    (workshop) => workshop.is_active !== false,
+    (workshop) => workshop.is_active !== false && workshop.completed !== true,
   );
+  const selectedVenueMapUrl = selectedVenue
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedVenue)}`
+    : null;
   const now = Date.now();
   const nextWorkshop =
     [...liveWorkshops]
@@ -307,6 +597,11 @@ export default function Courses() {
           : "Seats will appear as workshops go live.",
     },
   ];
+  const demoVideoWindows = demoVideos.map((item, index) => ({
+    label: `Demo ${String(index + 1).padStart(2, "0")}`,
+    href: item.youtube_url,
+    thumbnail: buildYouTubeThumbnailUrl(item.youtube_url),
+  }));
 
   return (
     <Layout>
@@ -340,8 +635,11 @@ export default function Courses() {
           animate="show"
           className="relative"
         >
-          <section className="container mx-auto px-6 pb-14 pt-10 lg:px-12 lg:pb-18 lg:pt-16">
-            <div className="grid gap-10 xl:grid-cols-[minmax(0,1.04fr)_minmax(360px,0.96fr)] xl:items-start">
+          <section
+            id="courses"
+            className="py-10 sm:py-14 lg:py-16"
+          >
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.04fr)_minmax(320px,0.96fr)] xl:items-start xl:gap-10">
               <motion.div variants={fadeUp} className="max-w-4xl">
                 <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-md">
                   <Sparkles className="h-4 w-4 text-primary" />
@@ -350,7 +648,7 @@ export default function Courses() {
                   </span>
                 </div>
 
-                <h1 className="mt-7 max-w-4xl font-display text-5xl font-bold leading-[0.92] text-foreground sm:text-6xl lg:text-7xl">
+                <h1 className="mt-7 max-w-4xl font-display text-4xl font-bold leading-[0.92] text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
                   Learn the visual
                   <span className="block text-gradient">
                     language of impact.
@@ -361,12 +659,12 @@ export default function Courses() {
                   {leadParagraph}
                 </p>
 
-                <div className="mt-9 flex flex-wrap gap-4">
+                <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                   <Button
                     variant="gold"
                     size="xl"
                     asChild
-                    className="shadow-[0_20px_60px_hsl(var(--primary)/0.22)]"
+                    className="w-full shadow-[0_20px_60px_hsl(var(--primary)/0.22)]"
                   >
                     <Link to="/contact">
                       Join the Learning Line
@@ -377,18 +675,18 @@ export default function Courses() {
                     variant="hero"
                     size="xl"
                     asChild
-                    className="border-primary/30 bg-background/12"
+                    className="w-full border-primary/30 bg-background/12"
                   >
                     <Link to="/#about">See Studio Story</Link>
                   </Button>
                 </div>
 
-                <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
                   {heroStats.map((stat) => (
                     <motion.div
                       key={stat.label}
                       variants={fadeUp}
-                      className="border border-border/60 bg-card/45 p-5 backdrop-blur-sm"
+                      className="app-surface border-border/60 bg-card/45 p-5"
                     >
                       <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
                         {stat.label}
@@ -409,7 +707,7 @@ export default function Courses() {
 
                 <div className={cn(shellClassName, "relative p-5 sm:p-6")}>
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-                  <div className="mb-5 flex items-center justify-between gap-4">
+                  <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
                         Course Reel
@@ -425,19 +723,154 @@ export default function Courses() {
 
                   {videoUrl ? (
                     <motion.div
+                      ref={videoContainerRef}
                       variants={scaleIn}
-                      className="relative overflow-hidden border border-border/60 bg-background/60"
+                      className="premium-video-wrapper relative overflow-hidden rounded-2xl border border-border/60 bg-[radial-gradient(ellipse_at_top,_rgba(245,247,255,0.12),_rgba(15,23,42,0.75))]"
                     >
-                      <video
-                        controls
-                        className="aspect-[16/10] w-full object-cover"
-                        src={videoUrl}
-                      />
-                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_50%,hsl(var(--background)/0.84)_100%)]" />
+                      <div
+                        className={cn(
+                          "relative aspect-video w-full",
+                          isFullscreen && "aspect-auto h-screen",
+                        )}
+                      >
+                        <video
+                          ref={videoRef}
+                          className="h-full w-full object-cover"
+                          src={videoUrl}
+                          playsInline
+                        />
+
+                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(15,23,42,0.55)_60%,rgba(15,23,42,0.9)_100%)]" />
+
+                        <button
+                          onClick={togglePlay}
+                          className={`absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/40 text-white shadow-lg transition hover:scale-105 ${
+                            showControls ? "opacity-100" : "opacity-0"
+                          }`}
+                          aria-label={
+                            isVideoPlaying ? "Pause video" : "Play video"
+                          }
+                        >
+                          {isVideoPlaying ? (
+                            <Pause className="h-6 w-6" />
+                          ) : (
+                            <Play className="h-6 w-6" />
+                          )}
+                        </button>
+
+                        <div
+                          className={`absolute inset-x-0 bottom-0 z-20 p-4 text-white transition-opacity duration-300 ${
+                            showControls ? "opacity-100" : "opacity-0"
+                          }`}
+                        >
+                          <input
+                            type="range"
+                            min={0}
+                            max={videoDuration || 0}
+                            step={0.1}
+                            value={videoTime}
+                            onChange={handleSeek}
+                            className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-slate-500/40 accent-primary"
+                            aria-label="Video progress"
+                          />
+
+                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  if (!videoRef.current) return;
+                                  videoRef.current.currentTime = Math.max(
+                                    0,
+                                    videoRef.current.currentTime - 10,
+                                  );
+                                }}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
+                                aria-label="Rewind 10 seconds"
+                              >
+                                <SkipBack className="h-4 w-4" />
+                              </button>
+
+                              <button
+                                onClick={togglePlay}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
+                                aria-label={isVideoPlaying ? "Pause" : "Play"}
+                              >
+                                {isVideoPlaying ? (
+                                  <Pause className="h-4 w-4" />
+                                ) : (
+                                  <Play className="h-4 w-4" />
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  if (!videoRef.current) return;
+                                  videoRef.current.currentTime = Math.min(
+                                    videoDuration,
+                                    videoRef.current.currentTime + 10,
+                                  );
+                                }}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
+                                aria-label="Forward 10 seconds"
+                              >
+                                <SkipForward className="h-4 w-4" />
+                              </button>
+
+                              <button
+                                onClick={toggleMute}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
+                                aria-label={isMuted ? "Unmute" : "Mute"}
+                              >
+                                <Volume2 className="h-4 w-4" />
+                              </button>
+
+                              <input
+                                type="range"
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={isMuted ? 0 : volume}
+                                onChange={handleVolumeChange}
+                                className="h-1 w-full min-w-24 cursor-pointer appearance-none rounded-lg bg-white/20 accent-primary sm:w-24"
+                                aria-label="Volume control"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                              <button
+                                onClick={togglePlaybackRate}
+                                className="min-h-10 rounded-md border border-white/25 bg-black/45 px-3 py-1 text-xs text-white transition hover:bg-white/20"
+                                aria-label="Change playback speed"
+                              >
+                                {playbackRate}x
+                              </button>
+
+                              <button
+                                onClick={toggleFullscreen}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
+                                aria-label={
+                                  isFullscreen ? "Exit fullscreen" : "Fullscreen"
+                                }
+                              >
+                                {isFullscreen ? (
+                                  <Minimize2 className="h-4 w-4" />
+                                ) : (
+                                  <Maximize2 className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex items-center justify-between text-xs">
+                            <span>{formatTime(videoTime)}</span>
+                            <span>{formatTime(videoDuration)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   ) : (
-                    <div className="flex aspect-[16/10] items-center justify-center border border-border/60 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.14),transparent_32%),linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)]">
-                      <div className="max-w-xs text-center">
+                    <div className="flex aspect-video items-center justify-center border border-border/60 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.14),transparent_32%),linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)] p-6">
+                      <div className="max-w-sm text-center">
                         <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
                           Lesson Film
                         </p>
@@ -477,15 +910,16 @@ export default function Courses() {
             </div>
           </section>
 
-          <section className="container mx-auto px-6 pb-16 lg:px-12 lg:pb-20">
-            <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="pb-12 sm:pb-16 lg:pb-20">
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_320px]">
               <motion.div
                 variants={fadeUp}
                 className={cn(shellClassName, "p-6 sm:p-8 lg:p-10")}
               >
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-                <div className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-                  <div>
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-stretch">
+                  <div className="flex flex-col lg:h-full">
+                    <div>
                     <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
                       Course Architecture
                     </p>
@@ -500,11 +934,86 @@ export default function Courses() {
                       Explore each module with achievable milestones, hands-on
                       lessons, and an organized learning path.
                     </p>
+                    </div>
+
+                    {demoVideoWindows.length > 0 && (
+                      <div className="mt-6 flex min-h-0 flex-1 flex-col pt-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-display text-[10px] uppercase tracking-[0.32em] text-primary">
+                          Demo Windows
+                        </p>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/50">
+                          Click to open on YouTube
+                        </p>
+                      </div>
+
+                      <div
+                        className="mt-3 grid grid-cols-1 gap-2.5 lg:min-h-0 lg:flex-1"
+                        style={{
+                          gridTemplateRows:
+                            demoVideoWindows.length > 0
+                              ? `repeat(${demoVideoWindows.length}, minmax(0, 1fr))`
+                              : undefined,
+                        }}
+                      >
+                        {demoVideoWindows.map((demo) => (
+                          <motion.div
+                            key={demo.label}
+                            variants={fadeUp}
+                            {...hoverLift}
+                            className={cn(
+                              "group h-full overflow-hidden rounded-[1.15rem] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.96),hsl(var(--background)/0.99))] shadow-[0_18px_44px_hsl(0_0%_0%/0.2)]",
+                            )}
+                          >
+                            <a
+                              href={demo.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="grid h-full grid-rows-[auto_minmax(0,1fr)]"
+                            >
+                              <div className="flex items-center justify-between border-b border-border/50 bg-background/78 px-3 py-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="h-2 w-2 rounded-full bg-primary/85" />
+                                  <span className="h-2 w-2 rounded-full bg-amber-200/70" />
+                                  <span className="h-2 w-2 rounded-full bg-foreground/35" />
+                                </div>
+                                <p className="font-display text-[9px] uppercase tracking-[0.24em] text-foreground/55">
+                                  {demo.label}
+                                </p>
+                              </div>
+
+                              <div className="relative aspect-[16/6] min-h-[92px] overflow-hidden bg-black lg:h-full lg:min-h-0 lg:aspect-auto">
+                                {demo.thumbnail ? (
+                                  <img
+                                    src={demo.thumbnail}
+                                    alt={demo.label}
+                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.18),transparent_42%),linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)]" />
+                                )}
+                                <div className="absolute inset-0 bg-black/28 transition-colors duration-300 group-hover:bg-black/18" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/45 text-white shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:scale-110">
+                                    <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+                                  </span>
+                                </div>
+                                <div className="absolute bottom-2 right-2 rounded-full border border-white/20 bg-black/45 p-1.5 text-white/80 backdrop-blur-sm">
+                                  <ArrowUpRight className="h-3 w-3" />
+                                </div>
+                              </div>
+                            </a>
+                          </motion.div>
+                        ))}
+                      </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                      <article className="rounded-xl border border-border/60 bg-background/70 p-4 text-center">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <article className="rounded-xl border border-border/60 bg-background/70 p-4 text-center">
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">
                           Modules
                         </p>
@@ -549,7 +1058,7 @@ export default function Courses() {
                             <button
                               type="button"
                               onClick={() => toggleSection(index)}
-                              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+                              className="flex w-full flex-col gap-3 px-5 py-4 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                             >
                               <div>
                                 <p className="text-xs uppercase tracking-widest text-primary">
@@ -655,10 +1164,7 @@ export default function Courses() {
                 </div>
               </motion.div>
 
-              <motion.aside
-                variants={fadeUp}
-                className="space-y-5 xl:sticky xl:top-28 xl:self-start"
-              >
+              <motion.aside variants={fadeUp} className="space-y-5 xl:sticky xl:top-24 xl:self-start">
                 <div className={cn(shellClassName, "p-5")}>
                   <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
                     Learning Pulse
@@ -720,7 +1226,7 @@ export default function Courses() {
                     connection.
                   </p>
                   <div className="mt-5 grid gap-3">
-                    <Button variant="gold" size="lg" asChild>
+                    <Button variant="gold" size="lg" asChild className="w-full">
                       <Link to="/contact">
                         Contact the Studio
                         <ArrowUpRight />
@@ -730,7 +1236,7 @@ export default function Courses() {
                       variant="hero"
                       size="lg"
                       asChild
-                      className="border-primary/30 bg-background/12"
+                      className="w-full border-primary/30 bg-background/12"
                     >
                       <Link to="/#gallery">View the Collection</Link>
                     </Button>
@@ -742,62 +1248,59 @@ export default function Courses() {
 
           <section
             id="workshops"
-            className="container mx-auto px-6 pb-24 lg:px-12"
+            className="pb-20 sm:pb-24"
           >
-            <motion.div
-              variants={fadeUp}
-              className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end"
-            >
-              <div>
-                <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
-                  Live Workshops
-                </p>
-                <h2 className="mt-4 max-w-3xl font-display text-4xl font-bold leading-[0.96] text-foreground md:text-5xl lg:text-6xl">
-                  The workshop section should feel
-                  <span className="block text-foreground/72">
-                    like event drops, not cards in a grid.
-                  </span>
-                </h2>
-              </div>
-              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
-                Each session gets more presence, clearer details, and a stronger
-                sense that something time-bound is happening here.
-              </p>
-            </motion.div>
-
-            {liveWorkshops.length === 0 ? (
+            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
               <motion.div
                 variants={fadeUp}
-                className={cn(shellClassName, "p-8 text-center sm:p-10")}
+                className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-end"
               >
-                <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-md mb-6">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
-                    Workshop Studio
-                  </span>
+                <div>
+                  <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                    Live Workshops
+                  </p>
+                  <h2 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-[1] text-foreground sm:text-4xl md:text-5xl">
+                    Workshops with cleaner layout, clearer details, and better spacing.
+                  </h2>
                 </div>
-                <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
-                  Workshop Update
-                </p>
-                <h3 className="mt-4 font-display text-3xl text-foreground">
-                  New sessions are being composed right now.
-                </h3>
-                <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-                  The page is ready for workshop drops. As soon as a live
-                  session is published from the admin side, it will land here
-                  with the new presentation.
+                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
+                  Each session gets room to breathe without crowding the viewport.
                 </p>
               </motion.div>
-            ) : (
-              <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+
+              {liveWorkshops.length === 0 ? (
+                <motion.div
+                  variants={fadeUp}
+                  className={cn(shellClassName, "p-8 text-center sm:p-10")}
+                >
+                  <div className="mb-6 inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-md">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                      Workshop Studio
+                    </span>
+                  </div>
+                  <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                    Workshop Update
+                  </p>
+                  <h3 className="mt-4 font-display text-3xl text-foreground">
+                    New sessions are being composed right now.
+                  </h3>
+                  <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+                    The page is ready for workshop drops. As soon as a live
+                    session is published from the admin side, it will land here
+                    with the updated layout.
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 2xl:grid-cols-3">
                 {liveWorkshops.map((workshop, index) => {
                   const workshopDate = new Date(workshop.date);
                   const now = new Date();
 
-                  const isUpcoming = workshopDate > now;
+                  const isUpcoming = workshopDate > now && !workshop.completed;
                   const isToday =
-                    workshopDate.toDateString() === now.toDateString();
-
+                    workshopDate.toDateString() === now.toDateString() &&
+                    !workshop.completed;
                   return (
                     <motion.article
                       key={workshop.id}
@@ -808,7 +1311,7 @@ export default function Courses() {
                         "group relative flex h-full flex-col overflow-hidden",
                         index === 0 &&
                           liveWorkshops.length > 2 &&
-                          "md:col-span-2 xl:col-span-2",
+                          "sm:col-span-2 2xl:col-span-2",
                       )}
                     >
                       {/* STATUS */}
@@ -847,18 +1350,38 @@ export default function Courses() {
                         </div>
                       )}
 
-                      {/* DELETE BUTTON */}
+                      {/* ADMIN BUTTONS */}
                       {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(workshop.id)}
-                          className="absolute right-6 top-6 bg-red-500 px-3 py-1 text-xs rounded"
-                        >
-                          Delete
-                        </button>
+                        <div className="absolute right-4 top-16 z-10 flex flex-wrap justify-end gap-2 sm:right-6 sm:top-6">
+                          <button
+                            onClick={() =>
+                              handleToggleComplete(
+                                workshop.id,
+                                workshop.completed || false,
+                              )
+                            }
+                            className={cn(
+                              "min-h-10 rounded-md px-3 text-xs text-white",
+                              workshop.completed
+                                ? "bg-orange-500 hover:bg-orange-600"
+                                : "bg-green-500 hover:bg-green-600",
+                            )}
+                          >
+                            {workshop.completed
+                              ? "Mark Incomplete"
+                              : "Mark Complete"}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(workshop.id)}
+                            className="min-h-10 rounded-md bg-red-500 px-3 text-xs text-white hover:bg-red-600"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       )}
 
                       {/* CONTENT */}
-                      <div className="flex flex-1 flex-col p-6">
+                      <div className="flex flex-1 flex-col p-5 sm:p-6">
                         <h3 className="text-xl font-bold mb-2">
                           {workshop.title}
                         </h3>
@@ -867,24 +1390,139 @@ export default function Courses() {
                           {workshop.description || "Coming soon"}
                         </p>
 
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold">
+                        <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="flex items-center gap-2 text-sm text-zinc-300">
+                            <CalendarClock className="h-4 w-4 shrink-0 text-primary" />
+                            <span>{formatShortDate(workshop.date)}</span>
+                          </div>
+                          {workshop.duration && (
+                            <div className="flex items-center gap-2 text-sm text-zinc-300">
+                              <Clock3 className="h-4 w-4 shrink-0 text-primary" />
+                              <span>{workshop.duration}</span>
+                            </div>
+                          )}
+                          {workshop.max_seats ? (
+                            <div className="flex items-center gap-2 text-sm text-zinc-300">
+                              <Users className="h-4 w-4 shrink-0 text-primary" />
+                              <span>{workshop.max_seats} seats</span>
+                            </div>
+                          ) : null}
+                          <div className="text-sm font-semibold text-foreground">
                             {formatPrice(workshop.price)}
-                          </span>
+                          </div>
+                        </div>
 
-                          <motion.div {...buttonTap}>
-                            <Button asChild>
-                              <Link to="/contact">Reserve →</Link>
-                            </Button>
-                          </motion.div>
+                        {workshop.venue && (
+                          <button
+                            onClick={() => setSelectedVenue(workshop.venue)}
+                            className="mt-4 inline-flex min-h-10 items-center gap-2 text-left text-sm text-primary transition-colors hover:text-primary/80"
+                          >
+                            <MapPin className="h-4 w-4 shrink-0" />
+                            <span className="break-words">{workshop.venue}</span>
+                          </button>
+                        )}
+
+                        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Button asChild size="lg" className="w-full">
+                            <Link to="/contact">Reserve Seat</Link>
+                          </Button>
+                          <Button
+                            variant="hero"
+                            size="lg"
+                            asChild
+                            className="w-full border-primary/30 bg-background/12"
+                          >
+                            <Link to="/contact">Ask a Question</Link>
+                          </Button>
+                        </div>
+
+                        {workshop.venue && (
+                          <button
+                            onClick={() => setSelectedVenue(workshop.venue)}
+                            className="hidden"
+                          >
+                            📍 {workshop.venue}
+                          </button>
+                        )}
+
+                        <div className="hidden flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          {workshop.price && (
+                            <span className="font-bold">
+                              {formatPrice(workshop.price)}
+                            </span>
+                          )}
+
+                          <div className="flex w-full gap-2 sm:w-auto">
+                            <div>
+                              <Button asChild className="w-full sm:w-auto">
+                                <Link to="/contact">Reserve →</Link>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </motion.article>
                   );
                 })}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </section>
+
+          {/* GOOGLE MAPS MODAL */}
+          {selectedVenue && (
+            <AnimatePresence>
+              <motion.div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedVenue(null)}
+              >
+                <motion.div
+                  className="relative w-full max-w-2xl rounded-2xl border border-border/60 bg-card shadow-2xl"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => setSelectedVenue(null)}
+                    className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-transparent transition hover:bg-black/60"
+                    aria-label="Close venue map"
+                  >
+                    <X className="absolute h-5 w-5 text-white" />
+                    ✕
+                  </button>
+
+                  <div className="p-5 sm:p-6">
+                    <h3 className="mb-4 break-words text-lg font-bold">{selectedVenue}</h3>
+                    <div className="rounded-xl border border-border/60 bg-background/50 p-5">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        Open the venue in Google Maps to view directions without
+                        exposing a browser-side API key in the website bundle.
+                      </p>
+                      {selectedVenueMapUrl && (
+                        <Button asChild className="mt-4 w-full sm:w-auto">
+                          <a
+                            href={selectedVenueMapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open in Google Maps
+                            <ArrowUpRight className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      {selectedVenue}
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </AnimatePresence>
+          )}
         </motion.div>
       </div>
     </Layout>

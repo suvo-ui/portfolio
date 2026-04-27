@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
-import { ArtworkCard } from "./ArtworkCard";
+import { ArtworkCard } from "@/components/ArtworkCard";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Artwork {
   id: number;
@@ -12,6 +17,7 @@ interface Artwork {
   description?: string;
   price_inr?: number;
   is_sold?: boolean;
+  for_sale?: boolean;
 }
 
 interface GalleryCategory {
@@ -32,130 +38,116 @@ interface GallerySectionProps {
 
 export function GallerySection({
   category,
-  initialCount = 3,
+  initialCount = 4,
   isAdmin = false,
   sectionIndex = 0,
   onDeleteArtwork,
   onOpenArtwork,
 }: GallerySectionProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
 
-  const displayedArtworks = expanded
-    ? category.artworks
-    : category.artworks.slice(0, initialCount);
+  const visibleArtworks = useMemo(
+    () => category.artworks.slice(0, initialCount),
+    [category.artworks, initialCount],
+  );
 
   if (!category.artworks || category.artworks.length === 0) return null;
 
   const sectionNumber = String(sectionIndex + 1).padStart(2, "0");
-  const useEditorialLayout = !expanded && displayedArtworks.length >= 3;
-  const leadArtwork = useEditorialLayout ? displayedArtworks[0] : null;
-  const supportingArtworks = useEditorialLayout ? displayedArtworks.slice(1, 3) : displayedArtworks;
 
   return (
-    <section className="py-8 md:py-10">
-      <div className="container mx-auto px-6 lg:px-12">
-        <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-card/60 p-6 shadow-[0_24px_80px_hsl(0_0%_0%/0.2)] backdrop-blur-sm md:p-8 lg:p-10">
+    <section className="py-8 sm:py-10 lg:py-12">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/55 p-5 shadow-[0_24px_80px_hsl(0_0%_0%/0.2)] backdrop-blur-xl sm:p-6 lg:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.08),transparent_28%)]" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
-          <div className="relative grid gap-8 lg:grid-cols-[160px_minmax(0,1fr)]">
-            <div className="flex flex-col gap-4">
-              <p className="font-display text-7xl leading-none text-primary/18 md:text-8xl">
+          <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
+            <div className="hidden w-28 lg:block">
+              <p className="font-display text-7xl leading-none text-primary/18 xl:text-8xl">
                 {sectionNumber}
               </p>
-              <div className="h-px w-full bg-gradient-to-r from-primary/40 to-transparent" />
+              <div className="mt-4 h-px w-full bg-gradient-to-r from-primary/40 to-transparent" />
               {category.eyebrow && (
-                <p className="font-display text-xs uppercase tracking-[0.34em] text-primary">
+                <p className="mt-4 font-display text-[11px] uppercase tracking-[0.34em] text-primary">
                   {category.eyebrow}
                 </p>
               )}
             </div>
 
-            <div>
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-2xl">
-                  <h2 className="font-display text-3xl font-bold leading-[1.02] text-foreground md:text-4xl lg:text-5xl">
+            <div className="min-w-0">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 lg:hidden">
+                    <span className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                      {sectionNumber}
+                    </span>
+                    {category.eyebrow && (
+                      <span className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                        {category.eyebrow}
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="mt-4 font-display text-3xl font-bold leading-[1.02] text-foreground sm:text-4xl md:text-5xl">
                     {category.name}
                   </h2>
+
                   {category.description && (
-                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+                    <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                       {category.description}
                     </p>
                   )}
                 </div>
 
-                {category.artworks.length > initialCount && (
+                {category.artworks.length > visibleArtworks.length && (
                   <Button
                     variant="outline"
-                    className="group self-start md:self-auto"
-                    onClick={() => setExpanded(!expanded)}
+                    size="lg"
+                    className="w-full lg:w-auto"
+                    onClick={() => setShowGalleryModal(true)}
                   >
-                    {expanded ? "Show Less" : "See More"}
-                    <ArrowRight
-                      className={cn(
-                        "ml-2 h-4 w-4 transition-transform",
-                        expanded ? "rotate-90" : "group-hover:translate-x-1",
-                      )}
-                    />
+                    See More
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}
               </div>
 
-              <div className="mt-10">
-                {useEditorialLayout && leadArtwork ? (
-                  <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-                    <div className="opacity-0 animate-fade-in">
-                      <ArtworkCard
-                        artwork={leadArtwork}
-                        priority
-                        featured
-                        isAdmin={isAdmin}
-                        onDelete={(id) => onDeleteArtwork?.(id)}
-                        onOpen={onOpenArtwork}
-                      />
-                    </div>
-
-                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-1">
-                      {supportingArtworks.map((artwork, index) => (
-                        <div
-                          key={artwork.id}
-                          className="opacity-0 animate-fade-in"
-                          style={{ animationDelay: `${(index + 1) * 120}ms` }}
-                        >
-                          <ArtworkCard
-                            artwork={artwork}
-                            isAdmin={isAdmin}
-                            onDelete={(id) => onDeleteArtwork?.(id)}
-                            onOpen={onOpenArtwork}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {displayedArtworks.map((artwork, index) => (
-                      <div
-                        key={artwork.id}
-                        className="opacity-0 animate-fade-in"
-                        style={{ animationDelay: `${index * 120}ms` }}
-                      >
-                        <ArtworkCard
-                          artwork={artwork}
-                          priority={index < 2}
-                          isAdmin={isAdmin}
-                          onDelete={(id) => onDeleteArtwork?.(id)}
-                          onOpen={onOpenArtwork}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div className="mt-6 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+                {visibleArtworks.map((artwork, index) => (
+                  <ArtworkCard
+                    key={artwork.id}
+                    artwork={artwork}
+                    priority={index < 2}
+                    isAdmin={isAdmin}
+                    onDelete={(id) => onDeleteArtwork?.(id)}
+                    onOpen={onOpenArtwork}
+                  />
+                ))}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
+        <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle>{category.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+            {category.artworks.map((artwork) => (
+              <ArtworkCard
+                key={artwork.id}
+                artwork={artwork}
+                isAdmin={isAdmin}
+                onDelete={(id) => onDeleteArtwork?.(id)}
+                onOpen={onOpenArtwork}
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

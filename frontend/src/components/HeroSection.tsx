@@ -1,9 +1,9 @@
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/Cough Syrup  (1).jpeg";
+import { Button } from "@/components/ui/button";
 
 interface HeroSectionProps {
   totalWorks: number;
@@ -39,8 +39,9 @@ export function HeroSection({
   curatedShelfCount,
 }: HeroSectionProps) {
   const scrollToGallery = () => {
-    const gallery = document.getElementById("gallery");
-    gallery?.scrollIntoView({ behavior: "smooth" });
+    document
+      .getElementById("gallery")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const heroStats = [
@@ -59,119 +60,115 @@ export function HeroSection({
   ];
 
   return (
-    <section className="relative isolate flex min-h-screen items-end overflow-hidden bg-background">
+    <section className="relative isolate flex min-h-[92svh] items-end overflow-hidden sm:min-h-screen">
       <div className="absolute inset-0">
         <motion.img
           src={heroImage}
           alt="Featured Paper Slayer artwork"
-          className="h-full w-full object-cover object-[58%_center]"
-          initial={{ scale: 1.05, filter: "brightness(0.72) saturate(1.02) contrast(1.02)" }}
-          animate={{ scale: 1.01, filter: "brightness(0.86) saturate(1.08) contrast(1.06)" }}
+          className="h-full w-full object-cover object-[62%_center] sm:object-[58%_center]"
+          initial={{ scale: 1.05, filter: "brightness(0.88) saturate(1.04) contrast(1.02)" }}
+          animate={{ scale: 1.01, filter: "brightness(0.98) saturate(1.08) contrast(1.04)" }}
           transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
         />
-        <div className="absolute inset-0 bg-[linear-gradient(96deg,hsl(var(--background)/0.9)_0%,hsl(var(--background)/0.68)_24%,hsl(var(--background)/0.26)_54%,hsl(var(--background)/0.34)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_66%_18%,hsl(var(--cream)/0.2),transparent_18%),linear-gradient(to_top,hsl(var(--background)/0.7)_0%,transparent_28%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_42%,hsl(var(--background)/0.46)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(96deg,hsl(var(--background)/0.22)_0%,transparent_34%,transparent_100%)]" />
       </div>
 
-      <div className="relative container mx-auto px-6 pb-20 pt-28 lg:px-12 lg:pb-24 lg:pt-36">
-        <motion.div
-          className="max-w-[40rem]"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
+      <div className="relative mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pb-24 lg:pt-32">
+        <div className="max-w-3xl">
           <motion.div
-            variants={itemVariants}
-            className="mb-8 inline-flex items-center gap-3 border border-primary/25 bg-background/12 px-4 py-2 backdrop-blur-md"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_18px_hsl(var(--primary)/0.9)]" />
-            <span className="font-display text-[11px] uppercase tracking-[0.38em] text-primary">
-              Paper Slayer Studio
-            </span>
-          </motion.div>
-
-          <motion.h1
-            variants={itemVariants}
-            className="max-w-[34rem] text-5xl font-bold leading-[0.94] text-foreground sm:text-6xl lg:text-7xl"
-          >
-            Paintings built with
-            <span className="block text-gradient">texture, afterglow,</span>
-            <span className="mt-3 block text-foreground/82">and a sharper sense of impact.</span>
-          </motion.h1>
-
-          <motion.p
-            variants={itemVariants}
-            className="mt-8 max-w-[31rem] text-base leading-relaxed text-foreground/72 sm:text-lg"
-          >
-            Paper Slayer explores expressive work through contrast, motion, and atmosphere.
-            Originals, commissions, and courses all sit inside the same studio world, now with a
-            homepage that feels more curated and alive.
-          </motion.p>
-
-          <motion.div
-            variants={itemVariants}
-            className="mt-12 flex flex-wrap items-center gap-4"
-          >
-            <Button
-              variant="gold"
-              size="xl"
-              onClick={scrollToGallery}
-              className="group shadow-[0_20px_60px_hsl(var(--primary)/0.22)]"
+            <motion.div
+              variants={itemVariants}
+              className="inline-flex items-center gap-3"
             >
-              View Collection
-              <ArrowUpRight className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Button>
-            <Button
-              variant="hero"
-              size="xl"
-              asChild
-              className="border-primary/30 bg-background/10 backdrop-blur-md"
-            >
-              <Link to="/contact">Commission Work</Link>
-            </Button>
-          </motion.div>
+              <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_18px_hsl(var(--primary)/0.9)]" />
+              <span className="font-display text-[11px] uppercase tracking-[0.38em] text-primary drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)]">
+                Paper Slayer Studio
+              </span>
+            </motion.div>
 
-          <motion.div variants={itemVariants} className="mt-10 flex flex-wrap gap-3">
-            {heroStats.map((stat) => (
-              <div
-                key={stat.label}
-                className="min-w-[10rem] border border-border/45 bg-background/16 px-4 py-3 backdrop-blur-md"
+            <motion.h1
+              variants={itemVariants}
+              className="mt-6 max-w-4xl font-display text-4xl font-bold leading-[0.94] text-foreground drop-shadow-[0_12px_38px_rgba(0,0,0,0.55)] sm:text-5xl md:text-6xl lg:text-7xl"
+            >
+              Paintings built with
+              <span className="block text-gradient">texture, afterglow,</span>
+              <span className="mt-2 block text-foreground/88">and sharper impact.</span>
+            </motion.h1>
+
+            <motion.p
+              variants={itemVariants}
+              className="mt-6 max-w-2xl text-sm leading-relaxed text-foreground/88 drop-shadow-[0_8px_26px_rgba(0,0,0,0.52)] sm:text-base md:text-lg"
+            >
+              Paper Slayer explores expressive work through contrast, motion,
+              and atmosphere. Originals, commissions, and courses sit inside
+              the same studio world without the homepage feeling crowded.
+            </motion.p>
+
+            <motion.div
+              variants={itemVariants}
+              className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6"
+            >
+              {heroStats.map((stat) => (
+                <div key={stat.label} className="border-l border-white/30 pl-4">
+                  <p className="font-display text-2xl font-bold text-foreground drop-shadow-[0_8px_22px_rgba(0,0,0,0.45)] sm:text-3xl">
+                    {stat.value}
+                  </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.28em] text-foreground/78 drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className="mt-10 flex flex-wrap items-center gap-3"
+            >
+              <Button
+                variant="gold"
+                size="xl"
+                onClick={scrollToGallery}
+                className="w-full shadow-[0_20px_60px_hsl(var(--primary)/0.22)] sm:w-auto"
               >
-                <p className="font-display text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="mt-2 text-[11px] uppercase tracking-[0.28em] text-foreground/62">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
+                View Collection
+                <ArrowUpRight className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="xl"
+                asChild
+                className="w-full border-white/40 bg-transparent text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.18)] hover:border-white hover:bg-black/15 hover:text-foreground sm:w-auto"
+              >
+                <Link to="/contact">Commission Work</Link>
+              </Button>
+            </motion.div>
+
+            <motion.button
+              variants={itemVariants}
+              onClick={scrollToGallery}
+              className="mt-12 inline-flex min-h-12 items-center gap-3 text-left text-foreground/78 transition-colors hover:text-primary"
+            >
+              <span className="font-display text-[11px] uppercase tracking-[0.35em]">
+                Scroll to collection
+              </span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30">
+                <ArrowDown className="h-5 w-5" />
+              </span>
+            </motion.button>
+
+            <motion.p
+              variants={itemVariants}
+              className="mt-6 text-sm uppercase tracking-[0.28em] text-foreground/70 drop-shadow-[0_4px_16px_rgba(0,0,0,0.42)]"
+            >
+              West Bengal, India
+            </motion.p>
           </motion.div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.05, duration: 0.7 }}
-          className="mt-14 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
-        >
-          <button
-            onClick={scrollToGallery}
-            className="group inline-flex items-center gap-3 text-muted-foreground transition-colors hover:text-primary"
-          >
-            <span className="font-display text-xs uppercase tracking-[0.35em]">Scroll to collection</span>
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-background/40 backdrop-blur-md">
-              <ArrowDown className="h-5 w-5 transition-transform duration-300 group-hover:translate-y-1" />
-            </span>
-          </button>
-
-          <div className="max-w-xs border border-border/40 bg-background/12 px-4 py-4 backdrop-blur-md">
-            <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
-              Studio Base
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-foreground/68">
-              West Bengal, India. Original works, commissions, and a quieter hero so the painting
-              can carry more of the first impression.
-            </p>
-          </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

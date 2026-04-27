@@ -3,115 +3,211 @@ import multer from "multer";
 
 import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
+import { recordAuditEvent } from "../lib/audit.js";
+import { HttpError, sendRouteError } from "../lib/http.js";
+import {
+  buildStorageObjectPath,
+  detectUploadedFileType,
+} from "../lib/storage.js";
+import { requireString } from "../lib/validation.js";
 import adminAuth from "../middlewares/adminAuth.js";
+import createRateLimiter from "../middlewares/rateLimit.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 const COURSE_VIDEO_BUCKET = "course vids";
+const MAX_COURSE_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
+const SUPABASE_UPLOAD_TIMEOUT_MS = 30_000;
+const adminCourseLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  keyPrefix: "admin-course",
+  message: "Too many course update attempts. Please wait before trying again.",
+});
 
-/* ---------- GET course (public) ---------- */
-router.get("/", async (req, res) => {
-  const result = await sql`SELECT * FROM course_page WHERE id = true`;
-  const course = result[0] || null;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_COURSE_VIDEO_SIZE_BYTES,
+    files: 1,
+  },
+});
 
+function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+async function fetchCurrentCourse(executor) {
+  const rows = await executor`
+    SELECT *
+    FROM course_page
+    WHERE id = TRUE
+    LIMIT 1
+  `;
+
+  return rows[0] || null;
+}
+
+function buildCourseResponse(course) {
   if (!course) {
-    return res.json(null);
+    return null;
   }
 
-  const video_url = course.video_path
-    ? supabase.storage.from(COURSE_VIDEO_BUCKET).getPublicUrl(course.video_path).data.publicUrl
+  const videoUrl = course.video_path
+    ? supabase.storage
+        .from(COURSE_VIDEO_BUCKET)
+        .getPublicUrl(course.video_path).data.publicUrl
     : null;
 
-  res.json({
+  return {
     ...course,
-    video_url,
-  });
-});
+    video_url: videoUrl,
+  };
+}
 
-/* ---------- PUT course (admin) ---------- */
-router.put("/", adminAuth, upload.single("video"), async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { markdown } = req.body;
-
-    const existing = await sql`
-      SELECT markdown, video_path FROM course_page WHERE id = true
-    `;
-    const existingCourse = existing[0] || null;
-    const oldVideoPath = existingCourse?.video_path || null;
-    const markdownToSave =
-      typeof markdown === "string" && markdown.trim()
-        ? markdown
-        : existingCourse?.markdown || "";
-
-    if (!markdownToSave.trim()) {
-      return res.status(400).json({ error: "Markdown required" });
-    }
-
-    let newVideoPath = null;
-
-    if (req.file) {
-      const safeName = req.file.originalname.replace(/\s+/g, "-");
-      newVideoPath = `course/${Date.now()}-${safeName}`;
-
-      const { error } = await supabase.storage
-        .from(COURSE_VIDEO_BUCKET)
-        .upload(newVideoPath, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false,
-        });
-
-      if (error) throw error;
-    }
-
-    if (newVideoPath && oldVideoPath) {
-      await supabase.storage.from(COURSE_VIDEO_BUCKET).remove([oldVideoPath]);
-    }
-
-    const result = await sql`
-      UPDATE course_page
-      SET
-        markdown = ${markdownToSave},
-        video_path = COALESCE(${newVideoPath}, video_path),
-        updated_at = NOW()
-      WHERE id = true
-      RETURNING *;
-    `;
-
-    res.json(result[0]);
+    const course = await fetchCurrentCourse(sql);
+    return res.json(buildCourseResponse(course));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Course update failed" });
+    return sendRouteError(res, err, "Failed to fetch course");
   }
 });
 
-/* ---------- DELETE video (admin) ---------- */
-router.delete("/video", adminAuth, async (req, res) => {
-  try {
-    const result = await sql`
-      SELECT video_path FROM course_page WHERE id = true
-    `;
+router.put(
+  "/",
+  adminAuth,
+  adminCourseLimiter,
+  upload.single("video"),
+  async (req, res) => {
+    try {
+      const existingCourse = await fetchCurrentCourse(sql);
+      const rawMarkdown =
+        req.body?.markdown === undefined
+          ? existingCourse?.markdown
+          : req.body.markdown;
+      const markdown = requireString(rawMarkdown, {
+        field: "course markdown",
+        maxLength: 50_000,
+      });
 
-    const videoPath = result[0]?.video_path;
-    if (!videoPath) {
+      let newVideoPath = null;
+
+      if (req.file) {
+        const detectedType = detectUploadedFileType(req.file, "video");
+        newVideoPath = buildStorageObjectPath("course", detectedType.extension);
+
+        const { error } = await withTimeout(
+          supabase.storage.from(COURSE_VIDEO_BUCKET).upload(
+            newVideoPath,
+            req.file.buffer,
+            {
+              contentType: req.file.mimetype,
+              upsert: false,
+            },
+          ),
+          SUPABASE_UPLOAD_TIMEOUT_MS,
+          "Supabase course video upload",
+        );
+
+        if (error) {
+          throw new HttpError(502, error.message || "Course video upload failed");
+        }
+      }
+
+      const updatedCourse = await sql.begin(async (tx) => {
+        const previousCourse = await fetchCurrentCourse(tx);
+
+        const upsertedRows = await tx`
+          INSERT INTO course_page (id, markdown, video_path, updated_at)
+          VALUES (
+            TRUE,
+            ${markdown},
+            ${newVideoPath ?? previousCourse?.video_path ?? null},
+            NOW()
+          )
+          ON CONFLICT (id)
+          DO UPDATE SET
+            markdown = EXCLUDED.markdown,
+            video_path = EXCLUDED.video_path,
+            updated_at = NOW()
+          RETURNING *
+        `;
+        const updated = upsertedRows[0];
+
+        await recordAuditEvent(tx, {
+          adminId: req.adminId,
+          action: "course_update",
+          entityType: "course_page",
+          entityId: "true",
+          before: previousCourse,
+          after: updated,
+          req,
+        });
+
+        return updated;
+      });
+
+      return res.json(buildCourseResponse(updatedCourse));
+    } catch (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(413).json({
+            error: "Course video is too large. Please keep it under 50 MB.",
+          });
+        }
+
+        return res.status(400).json({ error: err.message });
+      }
+
+      return sendRouteError(res, err, "Course update failed");
+    }
+  },
+);
+
+router.delete("/video", adminAuth, adminCourseLimiter, async (req, res) => {
+  try {
+    const currentCourse = await fetchCurrentCourse(sql);
+
+    if (!currentCourse?.video_path) {
       return res.json({ success: true, message: "No video to delete" });
     }
 
-    const { error } = await supabase.storage
-      .from(COURSE_VIDEO_BUCKET)
-      .remove([videoPath]);
+    await sql.begin(async (tx) => {
+      const previousCourse = await fetchCurrentCourse(tx);
 
-    if (error) throw error;
+      const updatedRows = await tx`
+        UPDATE course_page
+        SET video_path = NULL, updated_at = NOW()
+        WHERE id = TRUE
+        RETURNING *
+      `;
+      const updatedCourse = updatedRows[0];
 
-    await sql`
-      UPDATE course_page
-      SET video_path = NULL, updated_at = NOW()
-      WHERE id = true
-    `;
+      await recordAuditEvent(tx, {
+        adminId: req.adminId,
+        action: "course_video_remove",
+        entityType: "course_page",
+        entityId: "true",
+        before: previousCourse,
+        after: updatedCourse,
+        req,
+      });
+    });
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to delete video" });
+    return sendRouteError(res, err, "Failed to delete video");
   }
 });
 

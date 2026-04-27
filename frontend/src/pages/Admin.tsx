@@ -1,11 +1,13 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowUpRight,
   CalendarClock,
   Clapperboard,
   Layers3,
   LogOut,
   Palette,
+  Play,
   Sparkles,
   UploadCloud,
 } from "lucide-react";
@@ -17,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
+import { apiUrl, fetchWithTimeout } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface Category {
@@ -29,6 +32,11 @@ interface CoursePage {
   video_path?: string | null;
   video_url?: string | null;
   updated_at?: string | null;
+}
+
+interface CourseDemoVideo {
+  position: number;
+  youtube_url: string;
 }
 
 interface ContactRequest {
@@ -72,6 +80,7 @@ const textareaClassName =
 
 const fileInputClassName =
   "admin-control admin-file-input block !h-12 !w-full !min-w-0 cursor-pointer !rounded-none !border-dashed !border-white/12 !bg-zinc-950/95 !px-4 !py-3 !text-sm !text-zinc-400 !shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors file:mr-4 file:border-0 file:bg-primary file:px-4 file:py-2 file:font-display file:text-xs file:uppercase file:tracking-[0.24em] file:text-primary-foreground hover:!border-primary/40";
+const defaultDemoVideoUrls = ["", "", ""];
 
 const formatAdminDate = (value?: string | null) => {
   if (!value) return "recently";
@@ -107,6 +116,36 @@ const formatRequestType = (value: string) =>
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ");
+
+const extractYouTubeVideoId = (value?: string | null) => {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+
+    if (hostname === "youtu.be") {
+      return url.pathname.slice(1).split("/")[0] || null;
+    }
+
+    const queryVideoId = url.searchParams.get("v");
+    if (queryVideoId) return queryVideoId;
+
+    const pathSegments = url.pathname.split("/").filter(Boolean);
+    if (pathSegments[0] === "shorts" || pathSegments[0] === "embed") {
+      return pathSegments[1] || null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const buildYouTubeThumbnailUrl = (value?: string | null) => {
+  const videoId = extractYouTubeVideoId(value);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+};
 
 function FieldShell({
   label,
@@ -170,12 +209,16 @@ export default function Admin() {
   const [price, setPrice] = useState("");
   const [size, setSize] = useState("");
   const [availableForPrint, setAvailableForPrint] = useState(false);
+  const [forSale, setForSale] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [markdown, setMarkdown] = useState("");
   const [courseLoading, setCourseLoading] = useState(true);
   const [video, setVideo] = useState<File | null>(null);
+  const [demoVideoUrls, setDemoVideoUrls] = useState<string[]>(defaultDemoVideoUrls);
+  const [demoVideosLoading, setDemoVideosLoading] = useState(true);
+  const [demoVideosSaving, setDemoVideosSaving] = useState(false);
   const [courseHasLiveVideo, setCourseHasLiveVideo] = useState(false);
   const [courseLastUpdated, setCourseLastUpdated] = useState<string | null>(
     null,
@@ -187,6 +230,7 @@ export default function Admin() {
   const [wsDuration, setWsDuration] = useState("");
   const [wsPrice, setWsPrice] = useState("");
   const [wsSeats, setWsSeats] = useState("");
+  const [wsVenue, setWsVenue] = useState("");
   const [wsImage, setWsImage] = useState<File | null>(null);
   const [wsVideo, setWsVideo] = useState<File | null>(null);
   const [wsLoading, setWsLoading] = useState(false);
@@ -196,9 +240,7 @@ export default function Admin() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/categories`,
-        );
+        const res = await fetch(apiUrl("/api/categories"));
         const data = await res.json();
         setCategories(data);
       } catch (error) {
@@ -208,9 +250,7 @@ export default function Admin() {
 
     const fetchCourse = async () => {
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/course`,
-        );
+        const res = await fetch(apiUrl("/api/course"));
         const data: CoursePage | null = await res.json();
 
         if (!res.ok || !data) {
@@ -227,10 +267,35 @@ export default function Admin() {
       }
     };
 
+    const fetchDemoVideos = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/course-demo-videos"));
+        const data: CourseDemoVideo[] | null = await res.json();
+
+        if (!res.ok || !Array.isArray(data)) {
+          throw new Error("Failed to load demo videos");
+        }
+
+        const nextUrls = [...defaultDemoVideoUrls];
+        data.forEach((item) => {
+          const index = Number(item.position) - 1;
+          if (index >= 0 && index < nextUrls.length) {
+            nextUrls[index] = item.youtube_url || "";
+          }
+        });
+        setDemoVideoUrls(nextUrls);
+      } catch (error) {
+        console.error("Failed to load demo videos:", error);
+        setDemoVideoUrls(defaultDemoVideoUrls);
+      } finally {
+        setDemoVideosLoading(false);
+      }
+    };
+
     const fetchContactRequests = async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/admin/contact-requests`,
+          apiUrl("/api/admin/contact-requests"),
           {
             credentials: "include",
           },
@@ -252,6 +317,7 @@ export default function Admin() {
 
     fetchCategories();
     fetchCourse();
+    fetchDemoVideos();
     fetchContactRequests();
   }, []);
 
@@ -260,6 +326,12 @@ export default function Admin() {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
+
+  useEffect(() => {
+    if (!forSale) {
+      setPrice("");
+    }
+  }, [forSale]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "image/*": [] },
@@ -275,51 +347,64 @@ export default function Admin() {
   const handleLogout = async () => logout();
 
   const handleSubmitArtwork = async () => {
-    if (!file || !artTitle || !categoryId || !price) return;
+    if (!file || !artTitle || !categoryId || (forSale && !price)) return;
     setLoading(true);
     try {
       const fd = new FormData();
       fd.append("image", file);
-      const uploadRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/upload`,
+      const uploadRes = await fetchWithTimeout(
+        apiUrl("/api/upload"),
         {
           method: "POST",
           credentials: "include",
           body: fd,
         },
+        30000,
       );
-      if (!uploadRes.ok) throw new Error("Image upload failed");
-      const uploadData = await uploadRes.json();
-      const createRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/artworks`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            title: artTitle,
-            description: artDescription,
-            category_id: Number(categoryId),
-            image_url: uploadData.url,
-            price_inr: Number(price),
-            size,
-            available_for_print: availableForPrint,
-          }),
-        },
-      );
-      if (!createRes.ok) throw new Error("Artwork creation failed");
+      const uploadData = await uploadRes.json().catch(() => null);
+
+      if (!uploadRes.ok) {
+        throw new Error(uploadData?.error || "Image upload failed");
+      }
+
+      if (!uploadData?.url) {
+        throw new Error("Upload completed without an image URL.");
+      }
+
+      const createRes = await fetch(apiUrl("/api/admin/artworks"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: artTitle,
+          description: artDescription,
+          category_id: Number(categoryId),
+          image_url: uploadData.url,
+          price_inr: forSale ? Number(price) : null,
+          size,
+          available_for_print: availableForPrint,
+          for_sale: forSale,
+        }),
+      });
+      const createData = await createRes.json().catch(() => null);
+
+      if (!createRes.ok) {
+        throw new Error(createData?.error || "Artwork creation failed");
+      }
+
       setArtTitle("");
       setArtDescription("");
       setCategoryId("");
       setPrice("");
       setSize("");
       setAvailableForPrint(false);
+      setForSale(false);
       setFile(null);
       setPreview(null);
       alert("Artwork uploaded successfully.");
     } catch (err) {
       console.error(err);
-      alert("Artwork upload failed.");
+      alert(err instanceof Error ? err.message : "Artwork upload failed.");
     } finally {
       setLoading(false);
     }
@@ -332,25 +417,50 @@ export default function Admin() {
     }
 
     const queuedVideo = video;
-    const fd = new FormData();
-    fd.append("markdown", markdown);
-    if (queuedVideo) fd.append("video", queuedVideo);
     setCourseUploading(true);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/course`,
-        {
-          method: "PUT",
-          credentials: "include",
-          body: fd,
-        },
-      );
-      const data: (CoursePage & { error?: string }) | null = await res
-        .json()
-        .catch(() => null);
+      const requestInit: RequestInit = queuedVideo
+        ? {
+            method: "PUT",
+            credentials: "include",
+            body: (() => {
+              const fd = new FormData();
+              fd.append("markdown", markdown);
+              fd.append("video", queuedVideo);
+              return fd;
+            })(),
+          }
+        : {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              markdown,
+            }),
+          };
+
+      const res = await fetch(apiUrl("/api/course"), {
+        ...requestInit,
+      });
+      const responseText = await res.text();
+      const data: (CoursePage & { error?: string }) | null = (() => {
+        if (!responseText) return null;
+
+        try {
+          return JSON.parse(responseText) as CoursePage & { error?: string };
+        } catch {
+          return null;
+        }
+      })();
 
       if (!res.ok) {
-        throw new Error(data?.error || "Course update failed");
+        throw new Error(
+          data?.error ||
+            responseText ||
+            `Course update failed (${res.status})`,
+        );
       }
 
       if (data?.markdown) {
@@ -363,11 +473,69 @@ export default function Admin() {
       );
       setVideo(null);
       alert("Course updated successfully.");
+      localStorage.setItem("courses-link-blink", "true");
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Course update failed.");
     } finally {
       setCourseUploading(false);
+    }
+  };
+
+  const updateDemoVideos = async () => {
+    const queuedDemoVideoUrls = demoVideoUrls.map((value) => value.trim());
+    setDemoVideosSaving(true);
+
+    try {
+      const res = await fetch(apiUrl("/api/course-demo-videos"), {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          demo_video_1_url: queuedDemoVideoUrls[0] || "",
+          demo_video_2_url: queuedDemoVideoUrls[1] || "",
+          demo_video_3_url: queuedDemoVideoUrls[2] || "",
+        }),
+      });
+      const responseText = await res.text();
+      const data: CourseDemoVideo[] | null = (() => {
+        if (!responseText) return null;
+
+        try {
+          return JSON.parse(responseText) as CourseDemoVideo[];
+        } catch {
+          return null;
+        }
+      })();
+
+      if (!res.ok) {
+        const errorMessage =
+          data &&
+          !Array.isArray(data) &&
+          typeof data === "object" &&
+          "error" in data
+            ? String(data.error)
+            : responseText || `Demo video update failed (${res.status})`;
+        throw new Error(errorMessage);
+      }
+
+      const nextUrls = [...defaultDemoVideoUrls];
+      (data || []).forEach((item) => {
+        const index = Number(item.position) - 1;
+        if (index >= 0 && index < nextUrls.length) {
+          nextUrls[index] = item.youtube_url || "";
+        }
+      });
+
+      setDemoVideoUrls(nextUrls);
+      alert("Demo windows updated successfully.");
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Demo video update failed.");
+    } finally {
+      setDemoVideosSaving(false);
     }
   };
 
@@ -381,36 +549,38 @@ export default function Admin() {
       fd.append("duration", wsDuration);
       fd.append("price", wsPrice);
       fd.append("max_seats", wsSeats);
+      fd.append("venue", wsVenue);
       if (wsImage) fd.append("image", wsImage);
       if (wsVideo) fd.append("video", wsVideo);
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/workshops`,
-        {
-          method: "POST",
-          body: fd,
-          credentials: "include",
-        },
-      );
+      const res = await fetch(apiUrl("/api/workshops"), {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Workshop creation failed");
       alert("Workshop created successfully.");
+      localStorage.setItem("workshops-link-blink", "true");
       setWsTitle("");
       setWsDescription("");
       setWsDate("");
       setWsDuration("");
       setWsPrice("");
       setWsSeats("");
+      setWsVenue("");
       setWsImage(null);
       setWsVideo(null);
     } catch (err) {
       console.error(err);
-      alert("Workshop creation failed.");
+      alert(err instanceof Error ? err.message : "Workshop creation failed.");
     } finally {
       setWsLoading(false);
     }
   };
 
-  const hasArtworkDraft = Boolean(file && artTitle && categoryId && price);
+  const hasArtworkDraft = Boolean(
+    file && artTitle && categoryId && (!forSale || price),
+  );
   const hasWorkshopMedia = Boolean(wsImage || wsVideo);
   const courseWordCount = markdown.trim()
     ? markdown.trim().split(/\s+/).length
@@ -478,8 +648,8 @@ export default function Admin() {
     },
     {
       label: "Workshop launch",
-      status: wsTitle && wsDate && wsPrice ? "Ready" : "In progress",
-      active: Boolean(wsTitle && wsDate && wsPrice),
+      status: wsTitle && wsDate && wsPrice && wsVenue ? "Ready" : "In progress",
+      active: Boolean(wsTitle && wsDate && wsPrice && wsVenue),
     },
   ];
   const assetStatus = [
@@ -498,6 +668,11 @@ export default function Admin() {
       active: Boolean(video) || courseHasLiveVideo,
     },
     {
+      label: "Demo windows",
+      value: `${demoVideoUrls.filter(Boolean).length}/3 YouTube links ready`,
+      active: demoVideoUrls.some(Boolean),
+    },
+    {
       label: "Workshop image",
       value: wsImage ? wsImage.name : "No workshop image selected",
       active: Boolean(wsImage),
@@ -508,6 +683,11 @@ export default function Admin() {
       active: Boolean(wsVideo),
     },
   ];
+  const demoWindowPreviews = demoVideoUrls.map((url, index) => ({
+    label: `Demo Window ${index + 1}`,
+    href: url.trim() || null,
+    thumbnail: buildYouTubeThumbnailUrl(url),
+  }));
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -531,7 +711,7 @@ export default function Admin() {
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
       <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(hsl(var(--foreground)/0.14)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.14)_1px,transparent_1px)] [background-size:120px_120px]" />
-      <div className="relative mx-auto max-w-7xl px-6 py-8 lg:px-10 lg:py-10">
+      <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -539,7 +719,7 @@ export default function Admin() {
         >
           <motion.section
             variants={itemVariants}
-            className={cn(panelClassName, "px-6 py-8 lg:px-10 lg:py-10")}
+            className={cn(panelClassName, "px-5 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10")}
           >
             <motion.div
               className="absolute left-0 top-0 h-px w-40 bg-gradient-to-r from-primary via-white/70 to-transparent"
@@ -575,7 +755,7 @@ export default function Admin() {
                   premium, fast, and intentional.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-4">
-                  <div className="inline-flex items-center gap-3 border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
+                  <div className="inline-flex max-w-full items-center gap-3 border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
                     <Sparkles className="h-4 w-4 text-primary" />
                     <span className="text-sm text-muted-foreground">
                       Secure session active. All publishing tools are unlocked.
@@ -585,7 +765,7 @@ export default function Admin() {
                     variant="outline"
                     size="lg"
                     onClick={handleLogout}
-                    className="border-destructive/30 bg-destructive/5 text-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                    className="w-full border-destructive/30 bg-destructive/5 text-foreground hover:border-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"
                   >
                     <LogOut className="h-4 w-4" />
                     Logout
@@ -664,15 +844,38 @@ export default function Admin() {
                         </select>
                       </FieldShell>
 
-                      <FieldShell label="Price" hint="INR">
-                        <Input
-                          type="number"
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
-                          placeholder="Set collector price"
-                          className={controlClassName}
-                        />
+                      <FieldShell
+                        label="For Sale"
+                        hint="Make this artwork available for purchase"
+                      >
+                        <div className="flex items-center gap-3 border border-white/12 bg-zinc-950/95 px-4 py-3 rounded-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                          <input
+                            type="checkbox"
+                            id="forSale"
+                            checked={forSale}
+                            onChange={(e) => setForSale(e.target.checked)}
+                            className="h-5 w-5 accent-primary cursor-pointer"
+                          />
+                          <label
+                            htmlFor="forSale"
+                            className="cursor-pointer text-sm text-white flex-1"
+                          >
+                            Enable for sale
+                          </label>
+                        </div>
                       </FieldShell>
+
+                      {forSale && (
+                        <FieldShell label="Price" hint="INR">
+                          <Input
+                            type="number"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            placeholder="Set collector price"
+                            className={controlClassName}
+                          />
+                        </FieldShell>
+                      )}
 
                       <FieldShell label="Size">
                         <Input
@@ -729,7 +932,7 @@ export default function Admin() {
                         size="xl"
                         onClick={handleSubmitArtwork}
                         disabled={loading}
-                        className="shadow-[0_18px_50px_hsl(var(--primary)/0.22)]"
+                        className="w-full shadow-[0_18px_50px_hsl(var(--primary)/0.22)] sm:w-auto"
                       >
                         {loading ? "Publishing..." : "Publish Artwork"}
                       </Button>
@@ -758,7 +961,7 @@ export default function Admin() {
                     <div
                       {...getRootProps()}
                       className={cn(
-                        "relative flex min-h-[320px] cursor-pointer items-center justify-center overflow-hidden border border-dashed border-white/15 bg-black/20 transition-colors",
+                        "relative flex min-h-[260px] cursor-pointer items-center justify-center overflow-hidden border border-dashed border-white/15 bg-black/20 transition-colors sm:min-h-[320px]",
                         isDragActive && "border-primary/60 bg-primary/10",
                       )}
                     >
@@ -819,7 +1022,7 @@ export default function Admin() {
                 </div>
               </motion.section>
 
-              <div className="grid gap-8 lg:grid-cols-2">
+              <div className="grid gap-8 xl:grid-cols-2">
                 <motion.section
                   variants={itemVariants}
                   whileHover={{ y: -4 }}
@@ -831,7 +1034,7 @@ export default function Admin() {
                       icon={<Clapperboard className="h-4 w-4" />}
                       eyebrow="Course Studio"
                       title="Refresh the learning experience."
-                      description="Upload the latest lesson media and update the supporting markdown in one focused panel."
+                      description="Upload the latest lesson media and update the supporting markdown without touching the separate demo-window system."
                     />
 
                     <div className="mb-5 border border-white/10 bg-black/20 p-4">
@@ -855,14 +1058,32 @@ export default function Admin() {
                         label="Course Video"
                         hint={video ? "Media queued" : "Optional"}
                       >
-                        <input
-                          type="file"
-                          accept="video/*"
-                          onChange={(e) =>
-                            e.target.files && setVideo(e.target.files[0])
-                          }
-                          className={fileInputClassName}
-                        />
+                        <div className="space-y-3">
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) =>
+                              e.target.files && setVideo(e.target.files[0])
+                            }
+                            className={fileInputClassName}
+                          />
+                          {video && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-foreground/85">
+                              <span className="break-all">
+                                Queued video: {video.name}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setVideo(null)}
+                                className="border-primary/30 bg-transparent"
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </FieldShell>
 
                       <FieldShell
@@ -887,6 +1108,7 @@ export default function Admin() {
                           size="lg"
                           onClick={updateCourse}
                           disabled={courseUploading || courseLoading}
+                          className="w-full sm:w-auto"
                         >
                           {courseUploading ? "Updating..." : "Update Course"}
                         </Button>
@@ -896,6 +1118,139 @@ export default function Admin() {
                             : "This update can go out as text-only."}
                         </p>
                       </div>
+                    </div>
+                  </div>
+                </motion.section>
+
+                <motion.section
+                  variants={itemVariants}
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.25 }}
+                  className={panelClassName}
+                >
+                  <div className="p-6 lg:p-8">
+                    <PanelHeader
+                      icon={<Clapperboard className="h-4 w-4" />}
+                      eyebrow="Demo Windows"
+                      title="Attach course teasers separately."
+                      description="This panel saves up to three YouTube demo windows on its own, fully separate from course markdown and lesson media."
+                    />
+
+                    <div className={fieldGridClassName}>
+                      {demoVideoUrls.map((value, index) => (
+                        <FieldShell
+                          key={`demo-video-${index + 1}`}
+                          label={`Demo Window ${index + 1}`}
+                          hint="Optional YouTube link for this demo slot"
+                        >
+                          <Input
+                            type="url"
+                            value={value}
+                            onChange={(e) =>
+                              setDemoVideoUrls((prev) =>
+                                prev.map((item, itemIndex) =>
+                                  itemIndex === index ? e.target.value : item,
+                                ),
+                              )
+                            }
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            className={controlClassName}
+                          />
+                        </FieldShell>
+                      ))}
+                    </div>
+
+                    <div className="mt-5 border border-white/10 bg-black/20 p-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="font-display text-[11px] uppercase tracking-[0.26em] text-primary">
+                            Demo Window Attachments
+                          </p>
+                          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                            Paste up to three YouTube links here. Saving this panel only updates the public demo windows and does not touch course markdown or the main course video.
+                          </p>
+                        </div>
+                        <div className="inline-flex items-center gap-2 self-start rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.22em] text-primary">
+                          <span className="h-2 w-2 rounded-full bg-primary" />
+                          {demoWindowPreviews.filter((item) => item.href).length}/3 attached
+                        </div>
+                      </div>
+
+                      {demoWindowPreviews.some((item) => item.href) ? (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {demoWindowPreviews
+                            .filter((item) => item.href)
+                            .map((preview) => (
+                              <div
+                                key={preview.label}
+                                className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/90 shadow-[0_18px_44px_rgba(0,0,0,0.3)]"
+                              >
+                                <div className="flex items-center justify-between border-b border-white/10 bg-black/35 px-3 py-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-primary/85" />
+                                    <span className="h-2 w-2 rounded-full bg-amber-300/70" />
+                                    <span className="h-2 w-2 rounded-full bg-white/25" />
+                                  </div>
+                                  <p className="font-display text-[9px] uppercase tracking-[0.24em] text-white/60">
+                                    {preview.label}
+                                  </p>
+                                </div>
+
+                                <a
+                                  href={preview.href!}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block"
+                                >
+                                  <div className="relative aspect-[4/3] overflow-hidden bg-black">
+                                    {preview.thumbnail ? (
+                                      <img
+                                        src={preview.thumbnail}
+                                        alt={preview.label}
+                                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                                        loading="lazy"
+                                      />
+                                    ) : (
+                                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.18),transparent_42%),linear-gradient(180deg,#18181b_0%,#09090b_100%)]" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/30" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/45 text-white shadow-lg backdrop-blur-sm">
+                                        <Play className="ml-0.5 h-4 w-4 fill-current" />
+                                      </span>
+                                    </div>
+                                    <div className="absolute bottom-2 right-2 rounded-full border border-white/15 bg-black/45 p-1.5 text-white/80 backdrop-blur-sm">
+                                      <ArrowUpRight className="h-3 w-3" />
+                                    </div>
+                                  </div>
+                                </a>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/10 p-5 text-sm text-muted-foreground">
+                          {demoVideosLoading
+                            ? "Loading current demo window attachments."
+                            : "Attached demo windows will appear here after you paste at least one YouTube link."}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-8 flex flex-wrap items-center gap-4">
+                      <Button
+                        variant="gold"
+                        size="lg"
+                        onClick={updateDemoVideos}
+                        disabled={demoVideosSaving || demoVideosLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        {demoVideosSaving ? "Updating..." : "Update Demo Windows"}
+                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        {demoVideoUrls.some((value) => value.trim())
+                          ? "Only these attached links will show on the public course page."
+                          : "Leave all three fields empty if you do not want demo windows yet."}
+                      </p>
                     </div>
                   </div>
                 </motion.section>
@@ -961,6 +1316,15 @@ export default function Admin() {
                           className={controlClassName}
                         />
                       </FieldShell>
+
+                      <FieldShell label="Venue Address">
+                        <Input
+                          value={wsVenue}
+                          onChange={(e) => setWsVenue(e.target.value)}
+                          placeholder="e.g. Studio A, 123 Art Street"
+                          className={controlClassName}
+                        />
+                      </FieldShell>
                     </div>
 
                     <div className="mt-5">
@@ -1010,6 +1374,7 @@ export default function Admin() {
                         size="lg"
                         onClick={handleCreateWorkshop}
                         disabled={wsLoading}
+                        className="w-full sm:w-auto"
                       >
                         {wsLoading ? "Creating..." : "Create Workshop"}
                       </Button>
@@ -1025,7 +1390,7 @@ export default function Admin() {
             </div>
             <motion.aside
               variants={itemVariants}
-              className="space-y-8 xl:sticky xl:top-8 xl:self-start"
+              className="space-y-8 xl:sticky xl:top-6 xl:self-start"
             >
               <div className="space-y-8">
                 <div className={cn(panelClassName, "p-6")}>
@@ -1162,7 +1527,7 @@ export default function Admin() {
                           key={request.id}
                           className="border border-white/10 bg-black/20 p-4"
                         >
-                          <div className="flex items-start justify-between gap-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <p className="font-display text-[11px] uppercase tracking-[0.24em] text-primary">
                                 {formatRequestType(request.request_type)}
@@ -1175,13 +1540,13 @@ export default function Admin() {
                               {formatAdminTimestamp(request.created_at)}
                             </p>
                           </div>
-                          <p className="mt-3 text-sm text-foreground/85">
+                          <p className="mt-3 break-words text-sm text-foreground/85">
                             {request.subject}
                           </p>
-                          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          <p className="mt-2 break-words text-sm leading-relaxed text-muted-foreground">
                             {request.message}
                           </p>
-                          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                          <p className="mt-3 break-all text-xs uppercase tracking-[0.18em] text-muted-foreground">
                             {request.email}
                           </p>
                         </div>

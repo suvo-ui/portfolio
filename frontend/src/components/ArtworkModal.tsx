@@ -4,8 +4,9 @@ interface Artwork {
   description?: string;
   image_url: string;
   price_inr?: number;
-  size?: string;        // ⭐ NEW
+  size?: string;
   is_sold?: boolean;
+  for_sale?: boolean;
 }
 
 interface Props {
@@ -16,79 +17,98 @@ interface Props {
 export default function ArtworkModal({ artwork, onClose }: Props) {
   if (!artwork) return null;
 
-  const usd = artwork.price_inr
-    ? (artwork.price_inr / 83).toFixed(0)
-    : null;
+  const usd = artwork.price_inr ? (artwork.price_inr / 83).toFixed(0) : null;
 
   const whatsappMessage = encodeURIComponent(
-    `Hello, I'm interested in "${artwork.title}" priced at ₹${artwork.price_inr}.`
+    artwork.for_sale && artwork.price_inr
+      ? `Hello, I'm interested in "${artwork.title}" priced at INR ${artwork.price_inr}.`
+      : `Hello, I'm interested in "${artwork.title}".`,
   );
-
-  console.log(artwork.size);
 
   const whatsappLink = `https://wa.me/8100135695?text=${whatsappMessage}`;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:p-6"
       onClick={onClose}
     >
       <div
-        className="bg-zinc-900 max-w-5xl w-full rounded-2xl overflow-hidden shadow-2xl grid md:grid-cols-2"
-        onClick={(e) => e.stopPropagation()}
+        className="relative mx-auto grid w-full max-w-6xl grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+        onClick={(event) => event.stopPropagation()}
       >
-        {/* ===== IMAGE SIDE ===== */}
-        <div className="bg-black flex items-center justify-center p-6">
-          <img
-            src={artwork.image_url}
-            alt={artwork.title}
-            className="max-h-[80vh] object-contain"
-          />
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 z-20 inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 bg-black/45 px-4 text-sm text-white transition hover:bg-black/65"
+        >
+          Close
+        </button>
 
-          {/* SOLD BADGE */}
+        <div className="relative flex items-center justify-center bg-black p-4 sm:p-6 lg:p-8">
+          <div className="w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950/80">
+            <img
+              src={artwork.image_url}
+              alt={artwork.title}
+              className="aspect-[4/5] w-full object-cover lg:aspect-auto lg:max-h-[78vh] lg:object-contain"
+            />
+          </div>
+
           {artwork.is_sold && (
-            <span className="absolute top-6 left-6 bg-red-600 text-white px-3 py-1 rounded-lg text-sm">
-              Sold
+            <span className="absolute left-4 top-4 rounded-lg bg-red-600 px-3 py-1 text-sm text-white sm:left-6 sm:top-6">
+              Collected
             </span>
           )}
         </div>
 
-        {/* ===== DETAILS SIDE ===== */}
-        <div className="p-8 flex flex-col justify-between">
+        <div className="flex flex-col justify-between p-5 sm:p-6 lg:p-8">
           <div>
-            <h2 className="text-3xl font-bold mb-3">{artwork.title}</h2>
+            <p className="font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+              Artwork Detail
+            </p>
+            <h2 className="mt-4 break-words font-display text-3xl font-bold text-white sm:text-4xl">
+              {artwork.title}
+            </h2>
 
             {artwork.description && (
-              <p className="text-zinc-400 mb-6">{artwork.description}</p>
+              <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                {artwork.description}
+              </p>
             )}
 
-            {/* PRICE */}
-            {artwork.price_inr && (
-              <div className="text-xl font-semibold mb-3">
-                ₹{artwork.price_inr.toLocaleString()}
-                {usd && (
-                  <span className="text-zinc-400 ml-3 text-base">
-                    (${usd} USD)
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {artwork.price_inr && artwork.for_sale && (
+                <div className="border border-white/10 bg-zinc-950/60 p-4">
+                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                    Price
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    INR {artwork.price_inr.toLocaleString()}
+                  </p>
+                  {usd && <p className="mt-1 text-sm text-zinc-400">${usd} USD</p>}
+                </div>
+              )}
 
-            {/* ⭐ SIZE DISPLAY */}
-            {artwork.size && (
-              <div className="text-sm text-zinc-400 mb-6">
-                Size: {artwork.size}
-              </div>
+              {artwork.size && (
+                <div className="border border-white/10 bg-zinc-950/60 p-4">
+                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                    Size
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-300">{artwork.size}</p>
+                </div>
+              )}
+            </div>
+
+            {!artwork.for_sale && !artwork.is_sold && (
+              <p className="mt-4 text-sm text-zinc-400">Available on inquiry.</p>
             )}
           </div>
 
-          {/* ACTION BUTTONS */}
-          <div className="flex gap-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {!artwork.is_sold && (
               <a
                 href={whatsappLink}
                 target="_blank"
-                className="bg-emerald-500 text-black px-5 py-2 rounded-lg font-medium hover:bg-emerald-400 transition"
+                rel="noreferrer"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-emerald-500 px-5 py-3 font-medium text-black transition hover:bg-emerald-400"
               >
                 Buy on WhatsApp
               </a>
@@ -96,7 +116,7 @@ export default function ArtworkModal({ artwork, onClose }: Props) {
 
             <button
               onClick={onClose}
-              className="px-5 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 transition"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-zinc-700 px-5 py-3 text-white transition hover:bg-zinc-600"
             >
               Close
             </button>

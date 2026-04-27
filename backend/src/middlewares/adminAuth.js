@@ -1,26 +1,30 @@
 import jwt from "jsonwebtoken";
 
+import { getJwtSecret } from "../config/auth.js";
+import { sendRouteError } from "../lib/http.js";
+
 export default function adminAuth(req, res, next) {
   try {
-    // 🍪 get token from cookies
     const token = req.cookies.adminToken;
 
     if (!token) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // 🔐 verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
 
-    // 🧠 attach admin info to request
     req.adminId = decoded.adminId;
-
-    next();
+    return next();
   } catch (err) {
-    console.error("AUTH ERROR:", err.message);
+    if (
+      err?.name === "JsonWebTokenError" ||
+      err?.name === "TokenExpiredError"
+    ) {
+      return res.status(401).json({
+        error: "Invalid or expired session",
+      });
+    }
 
-    return res.status(401).json({
-      error: "Invalid or expired session",
-    });
+    return sendRouteError(res, err, "Authentication failed");
   }
 }
