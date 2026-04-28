@@ -1,14 +1,25 @@
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import heroImage from "@/assets/Cough Syrup  (1).jpeg";
 import { Button } from "@/components/ui/button";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import type { Artwork } from "@/components/ArtworkCard";
 
 interface HeroSectionProps {
   totalWorks: number;
   availableWorks: number;
   curatedShelfCount: number;
+  artworks?: Artwork[];
 }
 
 const containerVariants = {
@@ -37,12 +48,30 @@ export function HeroSection({
   totalWorks,
   availableWorks,
   curatedShelfCount,
+  artworks = [],
 }: HeroSectionProps) {
+  const [api, setApi] = useState<CarouselApi>();
+
   const scrollToGallery = () => {
     document
       .getElementById("gallery")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  // Use first 3 artworks, or fallback to the static image if none available
+  const carouselArtworks = artworks.slice(0, 3);
+  const hasArtworks = carouselArtworks.length > 0;
+
+  // Auto-play carousel
+  useEffect(() => {
+    if (!api) return;
+
+    const interval = setInterval(() => {
+      api.scrollNext();
+    }, 5000); // Change artwork every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [api]);
 
   const heroStats = [
     {
@@ -62,14 +91,49 @@ export function HeroSection({
   return (
     <section className="relative isolate flex min-h-[92svh] items-end overflow-hidden sm:min-h-screen">
       <div className="absolute inset-0">
-        <motion.img
-          src={heroImage}
-          alt="Featured Paper Slayer artwork"
-          className="h-full w-full object-cover object-[62%_center] sm:object-[58%_center]"
-          initial={{ scale: 1.05, filter: "brightness(0.88) saturate(1.04) contrast(1.02)" }}
-          animate={{ scale: 1.01, filter: "brightness(0.98) saturate(1.08) contrast(1.04)" }}
-          transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
-        />
+        {hasArtworks ? (
+          <Carousel className="h-full w-full" setApi={setApi}>
+            <CarouselContent className="h-full">
+              {carouselArtworks.map((artwork) => (
+                <CarouselItem key={artwork.id} className="h-full basis-full">
+                  <motion.div
+                    className="h-full w-full"
+                    initial={{ scale: 1.05, opacity: 0 }}
+                    animate={{ scale: 1.01, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <img
+                      src={artwork.image_url}
+                      alt={artwork.title}
+                      className="h-full w-full object-cover object-center"
+                    />
+                  </motion.div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            {carouselArtworks.length > 1 && (
+              <>
+                <CarouselPrevious className="border-white/40 bg-transparent hover:border-white hover:bg-black/15" />
+                <CarouselNext className="border-white/40 bg-transparent hover:border-white hover:bg-black/15" />
+              </>
+            )}
+          </Carousel>
+        ) : (
+          <motion.img
+            src={heroImage}
+            alt="Featured Paper Slayer artwork"
+            className="h-full w-full object-cover object-[62%_center] sm:object-[58%_center]"
+            initial={{
+              scale: 1.05,
+              filter: "brightness(0.88) saturate(1.04) contrast(1.02)",
+            }}
+            animate={{
+              scale: 1.01,
+              filter: "brightness(0.98) saturate(1.08) contrast(1.04)",
+            }}
+            transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
+          />
+        )}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_42%,hsl(var(--background)/0.46)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(96deg,hsl(var(--background)/0.22)_0%,transparent_34%,transparent_100%)]" />
       </div>
@@ -97,7 +161,9 @@ export function HeroSection({
             >
               Paintings built with
               <span className="block text-gradient">texture, afterglow,</span>
-              <span className="mt-2 block text-foreground/88">and sharper impact.</span>
+              <span className="mt-2 block text-foreground/88">
+                and sharper impact.
+              </span>
             </motion.h1>
 
             <motion.p
@@ -105,8 +171,8 @@ export function HeroSection({
               className="mt-6 max-w-2xl text-sm leading-relaxed text-foreground/88 drop-shadow-[0_8px_26px_rgba(0,0,0,0.52)] sm:text-base md:text-lg"
             >
               Paper Slayer explores expressive work through contrast, motion,
-              and atmosphere. Originals, commissions, and courses sit inside
-              the same studio world without the homepage feeling crowded.
+              and atmosphere. Originals, commissions, and courses sit inside the
+              same studio world without the homepage feeling crowded.
             </motion.p>
 
             <motion.div

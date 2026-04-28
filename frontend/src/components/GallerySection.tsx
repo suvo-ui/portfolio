@@ -34,6 +34,7 @@ interface GallerySectionProps {
   sectionIndex?: number;
   onDeleteArtwork?: (id: number) => void;
   onOpenArtwork?: (artwork: Artwork) => void;
+  onEditArtwork?: (artwork: Artwork) => void;
 }
 
 export function GallerySection({
@@ -43,6 +44,7 @@ export function GallerySection({
   sectionIndex = 0,
   onDeleteArtwork,
   onOpenArtwork,
+  onEditArtwork,
 }: GallerySectionProps) {
   const [showGalleryModal, setShowGalleryModal] = useState(false);
 
@@ -122,6 +124,7 @@ export function GallerySection({
                     isAdmin={isAdmin}
                     onDelete={(id) => onDeleteArtwork?.(id)}
                     onOpen={onOpenArtwork}
+                    onEdit={onEditArtwork}
                   />
                 ))}
               </div>
@@ -143,6 +146,7 @@ export function GallerySection({
                 isAdmin={isAdmin}
                 onDelete={(id) => onDeleteArtwork?.(id)}
                 onOpen={onOpenArtwork}
+                onEdit={onEditArtwork}
               />
             ))}
           </div>

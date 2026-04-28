@@ -1,5 +1,5 @@
 import { type MouseEvent } from "react";
-import { ArrowUpRight, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowUpRight, Edit3, ShoppingCart, Trash2 } from "lucide-react";
 
 import LazyImage from "@/components/LazyImage";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ interface ArtworkCardProps {
   isAdmin?: boolean;
   featured?: boolean;
   onOpen?: (artwork: Artwork) => void;
+  onEdit?: (artwork: Artwork) => void;
   onDelete?: (id: number) => void;
 }
 
@@ -33,6 +34,7 @@ export function ArtworkCard({
   isAdmin = false,
   featured = false,
   onOpen,
+  onEdit,
   onDelete,
 }: ArtworkCardProps) {
   const { addItem } = useCart();
@@ -76,13 +78,27 @@ export function ArtworkCard({
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
       {isAdmin && (
-        <button
-          onClick={handleDelete}
-          className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-red-500/60 bg-red-500/15 text-red-300 transition-colors hover:bg-red-500/25"
-          title="Delete artwork"
-        >
-          <Trash2 size={16} />
-        </button>
+        <div className="absolute right-3 top-3 z-20 flex gap-2">
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit?.(artwork);
+            }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary/60 bg-primary/15 text-primary transition-colors hover:bg-primary/25"
+            title="Edit artwork"
+            type="button"
+          >
+            <Edit3 size={16} />
+          </button>
+          <button
+            onClick={handleDelete}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-red-500/60 bg-red-500/15 text-red-300 transition-colors hover:bg-red-500/25"
+            title="Delete artwork"
+            type="button"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       )}
 
       <div className="flex h-full min-w-0 flex-col">
@@ -101,7 +117,7 @@ export function ArtworkCard({
             src={artwork.image_url}
             alt={artwork.title}
             className={cn(
-              "h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]",
+              "h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.03]",
               priority && "will-change-transform",
             )}
           />

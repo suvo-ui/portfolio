@@ -20,7 +20,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Boska", "serif"],
+        display: ["Tanker-Regular", "sans-serif"],
         body: ["DM Sans", "sans-serif"],
       },
 

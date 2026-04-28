@@ -45,7 +45,8 @@ const categoryDetails: Record<
   },
 };
 
-const sortByNewest = (items: Artwork[]) => [...items].sort((a, b) => b.id - a.id);
+const sortByNewest = (items: Artwork[]) =>
+  [...items].sort((a, b) => b.id - a.id);
 
 const sortByPrice = (items: Artwork[]) =>
   [...items].sort((a, b) => (b.price_inr ?? 0) - (a.price_inr ?? 0));
@@ -84,9 +85,7 @@ const Index = () => {
   useEffect(() => {
     const loadArtworks = async () => {
       try {
-        const response = await fetch(
-          apiUrl("/api/artworks"),
-        );
+        const response = await fetch(apiUrl("/api/artworks"));
         const data = await response.json();
         setArtworks(data);
       } catch (error) {
@@ -99,13 +98,10 @@ const Index = () => {
 
   const handleDeleteArtwork = async (id: number) => {
     try {
-      const response = await fetch(
-        apiUrl(`/api/admin/artworks/${id}`),
-        {
-          method: "DELETE",
-          credentials: "include",
-        },
-      );
+      const response = await fetch(apiUrl(`/api/admin/artworks/${id}`), {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       const data = await response.json().catch(() => null);
 
@@ -116,8 +112,19 @@ const Index = () => {
       setArtworks((prev) => prev.filter((art) => art.id !== id));
     } catch (error) {
       console.error("Failed to delete artwork:", error);
-      alert(error instanceof Error ? error.message : "Failed to delete artwork");
+      alert(
+        error instanceof Error ? error.message : "Failed to delete artwork",
+      );
     }
+  };
+
+  const handleSaveArtwork = (updatedArtwork: Artwork) => {
+    setArtworks((prev) =>
+      prev.map((artwork) =>
+        artwork.id === updatedArtwork.id ? updatedArtwork : artwork,
+      ),
+    );
+    setSelectedArtwork(updatedArtwork);
   };
 
   const artworksByCategory = artworks.reduce(
@@ -165,7 +172,9 @@ const Index = () => {
     {} as Record<string, Artwork[]>,
   );
 
-  const printCuratedSections: CuratedSection[] = Object.entries(printArtworksByCategory)
+  const printCuratedSections: CuratedSection[] = Object.entries(
+    printArtworksByCategory,
+  )
     .filter(([categoryName]) => categoryDetails[categoryName])
     .map(([categoryName, categoryArtworks]) => {
       const details = categoryDetails[categoryName];
@@ -207,9 +216,13 @@ const Index = () => {
         totalWorks={artworks.length}
         availableWorks={availableArtworks.length}
         curatedShelfCount={curatedSections.length}
+        artworks={artworks}
       />
 
-      <div id="gallery" className="relative overflow-hidden bg-background pb-10 sm:pb-14">
+      <div
+        id="gallery"
+        className="relative overflow-hidden bg-background pb-10 sm:pb-14"
+      >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.08),transparent_30%)]" />
 
         <div className="relative">
@@ -295,6 +308,7 @@ const Index = () => {
                     sectionIndex={index}
                     onDeleteArtwork={handleDeleteArtwork}
                     onOpenArtwork={(art) => setSelectedArtwork(art)}
+                    onEditArtwork={(art) => setSelectedArtwork(art)}
                   />
                 ))
               ) : (
@@ -322,6 +336,7 @@ const Index = () => {
                     sectionIndex={index}
                     onDeleteArtwork={handleDeleteArtwork}
                     onOpenArtwork={(art) => setSelectedArtwork(art)}
+                    onEditArtwork={(art) => setSelectedArtwork(art)}
                   />
                 ))
               ) : (
@@ -346,7 +361,12 @@ const Index = () => {
         curatedShelfCount={curatedSections.length}
       />
 
-      <ArtworkModal artwork={selectedArtwork} onClose={() => setSelectedArtwork(null)} />
+      <ArtworkModal
+        artwork={selectedArtwork}
+        isAdmin={isAdmin}
+        onClose={() => setSelectedArtwork(null)}
+        onSave={handleSaveArtwork}
+      />
     </Layout>
   );
 };

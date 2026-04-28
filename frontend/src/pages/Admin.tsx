@@ -216,7 +216,8 @@ export default function Admin() {
   const [markdown, setMarkdown] = useState("");
   const [courseLoading, setCourseLoading] = useState(true);
   const [video, setVideo] = useState<File | null>(null);
-  const [demoVideoUrls, setDemoVideoUrls] = useState<string[]>(defaultDemoVideoUrls);
+  const [demoVideoUrls, setDemoVideoUrls] =
+    useState<string[]>(defaultDemoVideoUrls);
   const [demoVideosLoading, setDemoVideosLoading] = useState(true);
   const [demoVideosSaving, setDemoVideosSaving] = useState(false);
   const [courseHasLiveVideo, setCourseHasLiveVideo] = useState(false);
@@ -294,12 +295,9 @@ export default function Admin() {
 
     const fetchContactRequests = async () => {
       try {
-        const res = await fetch(
-          apiUrl("/api/admin/contact-requests"),
-          {
-            credentials: "include",
-          },
-        );
+        const res = await fetch(apiUrl("/api/admin/contact-requests"), {
+          credentials: "include",
+        });
         const data = await res.json();
 
         if (!res.ok) {
@@ -457,9 +455,7 @@ export default function Admin() {
 
       if (!res.ok) {
         throw new Error(
-          data?.error ||
-            responseText ||
-            `Course update failed (${res.status})`,
+          data?.error || responseText || `Course update failed (${res.status})`,
         );
       }
 
@@ -516,7 +512,7 @@ export default function Admin() {
           !Array.isArray(data) &&
           typeof data === "object" &&
           "error" in data
-            ? String(data.error)
+            ? String((data as any).error)
             : responseText || `Demo video update failed (${res.status})`;
         throw new Error(errorMessage);
       }
@@ -719,7 +715,10 @@ export default function Admin() {
         >
           <motion.section
             variants={itemVariants}
-            className={cn(panelClassName, "px-5 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10")}
+            className={cn(
+              panelClassName,
+              "px-5 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10",
+            )}
           >
             <motion.div
               className="absolute left-0 top-0 h-px w-40 bg-gradient-to-r from-primary via-white/70 to-transparent"
@@ -1167,12 +1166,18 @@ export default function Admin() {
                             Demo Window Attachments
                           </p>
                           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                            Paste up to three YouTube links here. Saving this panel only updates the public demo windows and does not touch course markdown or the main course video.
+                            Paste up to three YouTube links here. Saving this
+                            panel only updates the public demo windows and does
+                            not touch course markdown or the main course video.
                           </p>
                         </div>
                         <div className="inline-flex items-center gap-2 self-start rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.22em] text-primary">
                           <span className="h-2 w-2 rounded-full bg-primary" />
-                          {demoWindowPreviews.filter((item) => item.href).length}/3 attached
+                          {
+                            demoWindowPreviews.filter((item) => item.href)
+                              .length
+                          }
+                          /3 attached
                         </div>
                       </div>
 
@@ -1244,7 +1249,9 @@ export default function Admin() {
                         disabled={demoVideosSaving || demoVideosLoading}
                         className="w-full sm:w-auto"
                       >
-                        {demoVideosSaving ? "Updating..." : "Update Demo Windows"}
+                        {demoVideosSaving
+                          ? "Updating..."
+                          : "Update Demo Windows"}
                       </Button>
                       <p className="text-sm text-muted-foreground">
                         {demoVideoUrls.some((value) => value.trim())

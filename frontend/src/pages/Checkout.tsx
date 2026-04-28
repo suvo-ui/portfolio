@@ -31,17 +31,22 @@ export default function Checkout() {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    const orderData = {
-      items,
-      total,
-      customer: formData,
-      orderDate: new Date().toISOString(),
-    };
+    // Build WhatsApp message with order details
+    const orderItemsList = items
+      .map(
+        (item) =>
+          `• ${item.title} (${item.type}) x${item.quantity} - INR ${item.price.toLocaleString()}`,
+      )
+      .join("\n");
 
-    console.log("Order submitted:", orderData);
-    alert("Order submitted successfully! We will contact you soon.");
+    const whatsappMessage = encodeURIComponent(
+      `Hello! I'd like to enquire about the following items:\n\n${orderItemsList}\n\nTotal: INR ${total.toLocaleString()}\n\nMy Contact Information:\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nAddress: ${formData.address}${formData.notes ? `\n\nNotes: ${formData.notes}` : ""}`,
+    );
+
+    const whatsappLink = `https://wa.me/8100135695?text=${whatsappMessage}`;
+    window.open(whatsappLink, "_blank");
+
     clearCart();
-
     setFormData({
       name: "",
       email: "",
@@ -84,7 +89,8 @@ export default function Checkout() {
               Review your order.
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Keep the final step clean, readable, and easy to complete on any screen.
+              Keep the final step clean, readable, and easy to complete on any
+              screen.
             </p>
           </div>
 
@@ -115,7 +121,9 @@ export default function Checkout() {
                   <div className="border-t pt-4">
                     <div className="flex items-center justify-between gap-4 text-lg font-bold">
                       <span>Total</span>
-                      <span className="text-right">INR {total.toLocaleString()}</span>
+                      <span className="text-right">
+                        INR {total.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -194,7 +202,7 @@ export default function Checkout() {
                   </div>
 
                   <Button type="submit" className="w-full" size="lg">
-                    Place Order
+                    Enquire on WhatsApp
                   </Button>
                 </form>
               </CardContent>

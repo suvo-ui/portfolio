@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -51,6 +52,9 @@ export function CartIcon() {
             <ShoppingCart className="h-5 w-5" />
             Shopping Cart
           </SheetTitle>
+          <SheetDescription>
+            Review and manage items in your shopping cart
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col">
@@ -81,7 +85,9 @@ export function CartIcon() {
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center justify-between gap-4 text-base font-semibold sm:text-lg">
                   <span>Total:</span>
-                  <span className="text-right">INR {total.toLocaleString()}</span>
+                  <span className="text-right">
+                    INR {total.toLocaleString()}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2">
@@ -130,7 +136,9 @@ function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
       <div className="min-w-0">
         <h4 className="truncate text-sm font-medium">{item.title}</h4>
         <p className="text-xs capitalize text-muted-foreground">{item.type}</p>
-        <p className="mt-1 text-sm font-medium">INR {item.price.toLocaleString()}</p>
+        <p className="mt-1 text-sm font-medium">
+          INR {item.price.toLocaleString()}
+        </p>
 
         <div className="mt-3 flex items-center gap-2">
           <Button
