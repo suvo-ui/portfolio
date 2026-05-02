@@ -47,7 +47,18 @@ export default function ArtworkModal({
     category_id: null as number | null,
     for_sale: false,
     available_for_print: false,
+    is_sold: false,
   });
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -80,6 +91,7 @@ export default function ArtworkModal({
         null,
       for_sale: artwork.for_sale ?? false,
       available_for_print: artwork.available_for_print ?? false,
+      is_sold: artwork.is_sold ?? false,
     });
   }, [artwork, categories]);
 
@@ -140,6 +152,7 @@ export default function ArtworkModal({
         category_id: formData.category_id ?? undefined,
         for_sale: formData.for_sale,
         available_for_print: formData.available_for_print,
+        is_sold: formData.is_sold,
       };
 
       const response = await fetch(
@@ -183,7 +196,7 @@ export default function ArtworkModal({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-2 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[100] flex justify-center overflow-y-auto bg-black/70 p-2 backdrop-blur-sm sm:p-6"
       onClick={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -191,7 +204,7 @@ export default function ArtworkModal({
       transition={{ duration: 0.3 }}
     >
       <motion.div
-        className="relative mx-auto grid h-[calc(100svh-1rem)] max-h-[calc(100svh-1rem)] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl sm:h-auto sm:max-h-[90svh] lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+        className="relative mx-auto grid max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl sm:max-h-[90vh] lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
         onClick={(event) => event.stopPropagation()}
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -396,12 +409,35 @@ export default function ArtworkModal({
                       <input
                         type="checkbox"
                         checked={formData.for_sale}
-                        onChange={(event) =>
-                          updateFormField("for_sale", event.target.checked)
-                        }
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+
+                          updateFormField("for_sale", checked);
+
+                          // 🔥 FIX: enforce mutual exclusivity
+                          if (checked) {
+                            updateFormField("is_sold", false);
+                          }
+                        }}
                         className="h-4 w-4 rounded border-white/20 bg-black"
                       />
                       For sale
+                    </label>
+
+                    <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/80">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_sold}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+
+                          updateFormField("is_sold", checked);
+                          // 🔥 enforce logic
+                          if (checked) updateFormField("for_sale", false);
+                        }}
+                        className="h-4 w-4 rounded border-white/20 bg-black"
+                      />
+                      Sold Out
                     </label>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -431,17 +467,20 @@ export default function ArtworkModal({
                 )}
 
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-6 sm:grid-cols-2">
-                  {artwork.price_inr && artwork.for_sale && (
-                    <div className="border border-white/10 bg-zinc-950/60 p-3.5 sm:p-4">
-                      <p className="mobile-label text-primary">Price</p>
-                      <p className="mt-2 text-lg font-semibold text-white">
-                        INR {artwork.price_inr.toLocaleString()}
-                      </p>
-                      {usd && (
-                        <p className="mt-1 text-sm text-zinc-400">${usd} USD</p>
-                      )}
-                    </div>
-                  )}
+                  {artwork.price_inr !== null &&
+                    artwork.price_inr !== undefined && (
+                      <div className="border border-white/10 bg-zinc-950/60 p-3.5 sm:p-4">
+                        <p className="mobile-label text-primary">Price</p>
+                        <p className="mt-2 text-lg font-semibold text-white">
+                          INR {artwork.price_inr.toLocaleString()}
+                        </p>
+                        {usd && (
+                          <p className="mt-1 text-sm text-zinc-400">
+                            ${usd} USD
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                   {artwork.size && (
                     <div className="border border-white/10 bg-zinc-950/60 p-3.5 sm:p-4">

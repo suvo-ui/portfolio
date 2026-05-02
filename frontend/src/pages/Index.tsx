@@ -13,6 +13,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useTabSelection } from "@/context/TabSelectionContext";
 import { apiUrl } from "@/lib/api";
 import type { Print } from "@/types/print";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArtworkCard } from "@/components/ArtworkCard";
 
 interface CuratedSection {
   id: string;
@@ -77,12 +84,8 @@ const EmptyCollectionState = ({
   <section className="py-8 sm:py-10 lg:py-12">
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="rounded-[1.75rem] border border-border/60 bg-card/55 p-6 text-center backdrop-blur-sm sm:p-10">
-        <p className="mobile-eyebrow text-primary">
-          {eyebrow}
-        </p>
-        <h3 className="mobile-section-title mt-4 text-foreground">
-          {title}
-        </h3>
+        <p className="mobile-eyebrow text-primary">{eyebrow}</p>
+        <h3 className="mobile-section-title mt-4 text-foreground">{title}</h3>
         <p className="mobile-body-copy mx-auto mt-4 max-w-2xl text-muted-foreground">
           {description}
         </p>
@@ -104,6 +107,9 @@ const Index = () => {
   const [selectedItemType, setSelectedItemType] = useState<
     "artwork" | "print" | null
   >(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [galleryItems, setGalleryItems] = useState<Artwork[]>([]);
 
   useEffect(() => {
     const state = location.state as
@@ -198,6 +204,7 @@ const Index = () => {
   const handleOpenArtwork = (artwork: Artwork) => {
     setSelectedItemType("artwork");
     setSelectedItem(artwork);
+    setIsEditing(false); // 🔴 IMPORTANT
   };
 
   const handleOpenPrint = (print: Print) => {
@@ -340,7 +347,15 @@ const Index = () => {
                     sectionIndex={index}
                     onDeleteArtwork={handleDeleteArtwork}
                     onOpenArtwork={handleOpenArtwork}
-                    onEditArtwork={handleOpenArtwork}
+                    onEditArtwork={(artwork) => {
+                      setSelectedItemType("artwork");
+                      setSelectedItem(artwork);
+                      setIsEditing(true);
+                    }}
+                    onSeeMore={(artworks) => {
+                      setGalleryItems(artworks);
+                      setShowGalleryModal(true);
+                    }}
                   />
                 ))
               ) : (
@@ -381,12 +396,42 @@ const Index = () => {
         curatedShelfCount={curatedSections.length}
       />
 
+      <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
+        <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle>Gallery</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {galleryItems.map((artwork) => (
+              <ArtworkCard
+                key={artwork.id}
+                artwork={artwork}
+                isAdmin={isAdmin}
+                onDelete={(id) => handleDeleteArtwork(id)}
+                onOpen={(art) => {
+                  setShowGalleryModal(false);
+                  handleOpenArtwork(art);
+                }}
+                onEdit={(art) => {
+                  setShowGalleryModal(false);
+                  setSelectedItemType("artwork");
+                  setSelectedItem(art);
+                  setIsEditing(true);
+                }}
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <ArtworkModal
         artwork={selectedItem}
-        isAdmin={selectedItemType === "artwork" ? isAdmin : false}
+        isAdmin={isEditing && selectedItemType === "artwork"}
         onClose={() => {
           setSelectedItem(null);
           setSelectedItemType(null);
+          setIsEditing(false);
         }}
         onSave={handleSaveArtwork}
       />

@@ -217,6 +217,7 @@ export default function Admin() {
   const [size, setSize] = useState("");
   const [availableForPrint, setAvailableForPrint] = useState(false);
   const [forSale, setForSale] = useState(false);
+  const [isSold, setIsSold] = useState(false);
   const [uploadType, setUploadType] = useState<"gallery" | "prints">("gallery");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -414,6 +415,7 @@ export default function Admin() {
               size,
               available_for_print: availableForPrint,
               for_sale: forSale,
+              is_sold: isSold,
             }
           : {
               title: artTitle,
@@ -1044,6 +1046,33 @@ export default function Admin() {
                           />
                         </FieldShell>
                       )}
+
+                      <FieldShell
+                        label="Sold Out"
+                        hint="Mark this artwork as sold"
+                      >
+                        <div className="flex items-center gap-3 border border-white/12 bg-zinc-950/95 px-4 py-3 rounded-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                          <input
+                            type="checkbox"
+                            id="isSold"
+                            checked={isSold}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setIsSold(checked);
+
+                              // 🔥 enforce rule
+                              if (checked) setForSale(false);
+                            }}
+                            className="h-5 w-5 accent-primary cursor-pointer"
+                          />
+                          <label
+                            htmlFor="isSold"
+                            className="cursor-pointer text-sm text-white flex-1"
+                          >
+                            Mark as sold
+                          </label>
+                        </div>
+                      </FieldShell>
 
                       <FieldShell label="Size">
                         <Input

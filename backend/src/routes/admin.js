@@ -117,33 +117,57 @@ function normalizeCreatePayload(body) {
       field: "title",
       maxLength: 160,
     }),
+
     description: optionalString(body?.description, {
       field: "description",
       maxLength: 3000,
     }),
+
     categoryId: parsePositiveId(body?.category_id, "category id"),
+
     imageUrl: validateStoredArtworkUrl(body?.image_url),
+
     priceInr: parseOptionalNumber(body?.price_inr, {
       field: "price",
       min: 0,
       max: MAX_ARTWORK_PRICE_INR,
     }),
+
     size: optionalString(body?.size, {
       field: "size",
       maxLength: 100,
     }),
+
     availableForPrint:
       parseBoolean(body?.available_for_print, {
         field: "available for print",
         defaultValue: false,
       }) ?? false,
+
     forSale:
       parseBoolean(body?.for_sale, {
         field: "for sale",
         defaultValue: false,
       }) ?? false,
+
+    // ✅ ADD THIS
+    isSold:
+      parseBoolean(body?.is_sold, {
+        field: "sold",
+        defaultValue: false,
+      }) ?? false,
   };
 
+  // 🔥 ENFORCE LOGIC (critical)
+  if (payload.isSold) {
+    payload.forSale = false;
+  }
+
+  if (payload.forSale) {
+    payload.isSold = false;
+  }
+
+  // 🔴 VALIDATION
   if (payload.forSale && payload.priceInr === null) {
     throw new HttpError(400, "Price is required when artwork is for sale");
   }
@@ -160,6 +184,7 @@ function normalizeUpdatePayload(body) {
             field: "title",
             maxLength: 160,
           }),
+
     description:
       body?.description === undefined
         ? undefined
@@ -167,14 +192,17 @@ function normalizeUpdatePayload(body) {
             field: "description",
             maxLength: 3000,
           }),
+
     categoryId:
       body?.category_id === undefined
         ? undefined
         : parsePositiveId(body.category_id, "category id"),
+
     imageUrl:
       body?.image_url === undefined
         ? undefined
         : validateStoredArtworkUrl(body.image_url),
+
     priceInr:
       body?.price_inr === undefined
         ? undefined
@@ -183,6 +211,7 @@ function normalizeUpdatePayload(body) {
             min: 0,
             max: MAX_ARTWORK_PRICE_INR,
           }),
+
     size:
       body?.size === undefined
         ? undefined
@@ -190,12 +219,20 @@ function normalizeUpdatePayload(body) {
             field: "size",
             maxLength: 100,
           }),
+
     availableForPrint: parseBoolean(body?.available_for_print, {
       field: "available for print",
       defaultValue: undefined,
     }),
+
     forSale: parseBoolean(body?.for_sale, {
       field: "for sale",
+      defaultValue: undefined,
+    }),
+
+    // ✅ ADD THIS
+    isSold: parseBoolean(body?.is_sold, {
+      field: "sold",
       defaultValue: undefined,
     }),
   };
@@ -349,7 +386,7 @@ router.post("/artworks", adminAuth, adminArtworkLimiter, async (req, res) => {
       await ensureActiveCategory(tx, payload.categoryId);
 
       const createdRows = await tx`
-          INSERT INTO artworks (
+         INSERT INTO artworks (
             title,
             description,
             category_id,
@@ -357,7 +394,8 @@ router.post("/artworks", adminAuth, adminArtworkLimiter, async (req, res) => {
             price_inr,
             size,
             available_for_print,
-            for_sale
+            for_sale,
+            is_sold
           )
           VALUES (
             ${payload.title},
@@ -367,7 +405,8 @@ router.post("/artworks", adminAuth, adminArtworkLimiter, async (req, res) => {
             ${payload.priceInr},
             ${payload.size},
             ${payload.availableForPrint},
-            ${payload.forSale}
+            ${payload.forSale},
+            ${payload.isSold}
           )
           RETURNING *;
         `;
@@ -430,21 +469,40 @@ router.put(
 
         const nextArtwork = {
           title: payload.title ?? existing.title,
+
           description:
             payload.description !== undefined
               ? payload.description
               : existing.description,
+
           category_id: payload.categoryId ?? existing.category_id,
+
           image_url: payload.imageUrl ?? existing.image_url,
+
           price_inr:
             payload.priceInr !== undefined
               ? payload.priceInr
               : existing.price_inr,
+
           size: payload.size !== undefined ? payload.size : existing.size,
+
           available_for_print:
             payload.availableForPrint ?? existing.available_for_print,
+
           for_sale: payload.forSale ?? existing.for_sale,
+
+          // 🔥 ADD THIS LINE
+          is_sold:
+            payload.isSold !== undefined ? payload.isSold : existing.is_sold,
         };
+
+        if (nextArtwork.is_sold) {
+          nextArtwork.for_sale = false;
+        }
+
+        if (nextArtwork.for_sale) {
+          nextArtwork.is_sold = false;
+        }
 
         await ensureActiveCategory(tx, nextArtwork.category_id);
 
@@ -465,11 +523,12 @@ router.put(
             price_inr = ${nextArtwork.price_inr},
             size = ${nextArtwork.size},
             available_for_print = ${nextArtwork.available_for_print},
-            for_sale = ${nextArtwork.for_sale}
+            for_sale = ${nextArtwork.for_sale},
+            is_sold = ${nextArtwork.is_sold}
           WHERE id = ${artworkId}
           RETURNING *;
         `;
-      const updated = updatedRows[0];
+        const updated = updatedRows[0];
 
         await syncArtworkPrintRecord(tx, updated);
 

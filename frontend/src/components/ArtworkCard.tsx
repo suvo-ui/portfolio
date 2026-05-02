@@ -61,12 +61,13 @@ export function ArtworkCard({
     });
   };
 
-  const availabilityLabel = artwork.is_sold ? "Collected" : "Available";
-  const priceLabel = artwork.price_inr
-    ? `INR ${artwork.price_inr.toLocaleString()}`
-    : artwork.is_sold
-      ? "Collected"
-      : "Available on inquiry";
+  // const availabilityLabel = artwork.is_sold ? "Collected" : "Available";
+  const priceLabel =
+    artwork.price_inr !== null && artwork.price_inr !== undefined
+      ? `INR ${artwork.price_inr.toLocaleString()}`
+      : artwork.is_sold
+        ? "Collected"
+        : "Available on inquiry";
 
   return (
     <article
@@ -110,14 +111,19 @@ export function ArtworkCard({
           onClick={() => onOpen?.(artwork)}
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_48%)] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
-          <div className="absolute left-3 top-3 z-10 border border-border/60 bg-background/85 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground backdrop-blur-sm">
-            {availabilityLabel}
-          </div>
+          {artwork.is_sold && (
+            <div className="mt-2 text-center">
+              <span className="inline-block text-sm font-semibold tracking-wider text-red-500 animate-pulse">
+                SOLD OUT
+              </span>
+            </div>
+          )}
           <LazyImage
             src={artwork.image_url}
             alt={artwork.title}
             className={cn(
               "h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.03]",
+              artwork.is_sold && "opacity-70",
               priority && "will-change-transform",
             )}
           />
@@ -136,17 +142,17 @@ export function ArtworkCard({
             >
               {artwork.title}
             </h3>
-            {(artwork.for_sale || artwork.is_sold) && (
+            {artwork.price_inr !== null && artwork.price_inr !== undefined && (
               <p className="mt-3 text-sm text-muted-foreground">{priceLabel}</p>
             )}
           </div>
 
-          <div className="mt-auto grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {artwork.price_inr && !artwork.is_sold && artwork.for_sale && (
+          <div className="mt-auto grid grid-cols-2 gap-2">
+            {artwork.price_inr && !artwork.is_sold && (
               <Button
                 type="button"
                 size="default"
-                className="h-11 w-full px-4 text-[10px] uppercase tracking-[0.18em] sm:h-10 sm:text-[11px] sm:tracking-[0.24em]"
+                className="h-11 w-full px-4 text-[10px] uppercase tracking-[0.18em]"
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="h-4 w-4" />
@@ -158,9 +164,8 @@ export function ArtworkCard({
               type="button"
               onClick={() => onOpen?.(artwork)}
               className={cn(
-                "inline-flex min-h-11 w-full items-center justify-center gap-2 border border-border/60 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors duration-300 group-hover:border-primary/40 group-hover:text-primary sm:min-h-10 sm:text-[11px] sm:tracking-[0.24em]",
-                !(artwork.price_inr && !artwork.is_sold && artwork.for_sale) &&
-                  "sm:col-span-2",
+                "inline-flex min-h-11 w-full items-center justify-center gap-2 border border-border/60 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors",
+                !(artwork.price_inr && !artwork.is_sold) && "col-span-2",
               )}
             >
               View Details

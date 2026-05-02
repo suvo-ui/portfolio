@@ -4,12 +4,12 @@ import { ArrowRight } from "lucide-react";
 import { ArtworkPreviewCarousel } from "@/components/ArtworkPreviewCarousel";
 import { ArtworkCard } from "@/components/ArtworkCard";
 import { Button } from "@/components/ui/button";
-import {
+/* import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"; */
 
 interface Artwork {
   id: number;
@@ -36,18 +36,19 @@ interface GallerySectionProps {
   onDeleteArtwork?: (id: number) => void;
   onOpenArtwork?: (artwork: Artwork) => void;
   onEditArtwork?: (artwork: Artwork) => void;
+  onSeeMore?: (artworks: Artwork[]) => void;
 }
 
 export function GallerySection({
   category,
   initialCount = 4,
   isAdmin = false,
-  sectionIndex = 0,
   onDeleteArtwork,
   onOpenArtwork,
   onEditArtwork,
+  onSeeMore,
 }: GallerySectionProps) {
-  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  // const [showGalleryModal, setShowGalleryModal] = useState(false);
 
   const visibleArtworks = useMemo(
     () => category.artworks.slice(0, initialCount),
@@ -57,7 +58,7 @@ export function GallerySection({
 
   if (!category.artworks || category.artworks.length === 0) return null;
 
-  const sectionNumber = String(sectionIndex + 1).padStart(2, "0");
+  // const sectionNumber = String(sectionIndex + 1).padStart(2, "0");
 
   return (
     <section className="py-8 sm:py-10 lg:py-12">
@@ -68,9 +69,9 @@ export function GallerySection({
 
           <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
             <div className="hidden w-28 lg:block">
-              <p className="font-display text-7xl leading-none text-primary/18 xl:text-8xl">
+              {/* <p className="font-display text-7xl leading-none text-primary/18 xl:text-8xl">
                 {sectionNumber}
-              </p>
+              </p> */}
               <div className="mt-4 h-px w-full bg-gradient-to-r from-primary/40 to-transparent" />
               {category.eyebrow && (
                 <p className="mt-4 font-display text-[11px] uppercase tracking-[0.34em] text-primary">
@@ -83,9 +84,9 @@ export function GallerySection({
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <div className="min-w-0">
                   <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 lg:hidden">
-                    <span className="mobile-eyebrow text-primary">
+                    {/* <span className="mobile-eyebrow text-primary">
                       {sectionNumber}
-                    </span>
+                    </span> */}
                     {category.eyebrow && (
                       <span className="mobile-label text-primary">
                         {category.eyebrow}
@@ -109,7 +110,7 @@ export function GallerySection({
                     variant="outline"
                     size="lg"
                     className="w-full lg:w-auto"
-                    onClick={() => setShowGalleryModal(true)}
+                    onClick={() => onSeeMore?.(category.artworks)}
                   >
                     See More
                     <ArrowRight className="h-4 w-4" />
@@ -145,7 +146,7 @@ export function GallerySection({
         </div>
       </div>
 
-      <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
+      {/* <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
         <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{category.name}</DialogTitle>
@@ -158,12 +159,17 @@ export function GallerySection({
                 isAdmin={isAdmin}
                 onDelete={(id) => onDeleteArtwork?.(id)}
                 onOpen={onOpenArtwork}
-                onEdit={onEditArtwork}
+                onEdit={(artwork) => {
+                  setShowGalleryModal(false);
+                  setTimeout(() => {
+                    onEditArtwork?.(artwork);
+                  }, 50);
+                }}
               />
             ))}
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </section>
   );
 }
