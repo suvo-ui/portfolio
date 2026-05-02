@@ -74,3 +74,79 @@ export async function fetchWithTimeout(
     window.clearTimeout(timeoutId);
   }
 }
+
+export interface HeroCarouselImage {
+  id: number;
+  image_url: string;
+  title: string;
+  position: number;
+  active: boolean;
+  created_at: string;
+}
+
+export async function fetchHeroCarouselImages(): Promise<HeroCarouselImage[]> {
+  const response = await fetchWithTimeout(apiUrl("/api/hero-carousel"));
+  if (!response.ok) {
+    throw new Error("Failed to fetch hero carousel images");
+  }
+  return response.json();
+}
+
+export async function createHeroCarouselImage(data: {
+  image_url: string;
+  title: string;
+  position?: number;
+  active?: boolean;
+}): Promise<HeroCarouselImage> {
+  const response = await fetchWithTimeout(apiUrl("/api/admin/hero-carousel"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create hero carousel image");
+  }
+  return response.json();
+}
+
+export async function updateHeroCarouselImage(
+  id: number,
+  data: Partial<{
+    image_url: string;
+    title: string;
+    position: number;
+    active: boolean;
+  }>,
+): Promise<HeroCarouselImage> {
+  const response = await fetchWithTimeout(
+    apiUrl(`/api/admin/hero-carousel/${id}`),
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Failed to update hero carousel image");
+  }
+  return response.json();
+}
+
+export async function deleteHeroCarouselImage(id: number): Promise<void> {
+  const response = await fetchWithTimeout(
+    apiUrl(`/api/admin/hero-carousel/${id}`),
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Failed to delete hero carousel image");
+  }
+}

@@ -6,12 +6,14 @@ import helmet from "helmet";
 import uploadRoutes from "./routes/upload.js";
 import adminRoutes from "./routes/admin.js";
 import artworksRoutes from "./routes/artworks.js";
+import printsRoutes from "./routes/prints.js";
 import authRoutes from "./routes/auth.js";
 import contactRoutes from "./routes/contact.js";
 import courseRoutes from "./routes/courses.js";
 import courseDemoVideoRoutes from "./routes/courseDemoVideos.js";
 import categoriesRoutes from "./routes/categories.js";
 import workshopRoutes from "./routes/workshops.js";
+import heroCarouselRoutes from "./routes/heroCarousel.js";
 
 import corsOptions from "./config/cors.js";
 import sql from "./config/db.js";
@@ -26,9 +28,7 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 /* ---------- CORS ---------- */
-app.use(
-  cors(corsOptions),
-);
+app.use(cors(corsOptions));
 
 /* ---------- Body & Cookie Parsers ---------- */
 app.use(express.json({ limit: "64kb" }));
@@ -50,12 +50,14 @@ app.get("/", (req, res) => {
 app.use("/api/upload", uploadRoutes); // 🔼 artwork uploads
 app.use("/api/admin", adminRoutes); // 🔐 admin actions
 app.use("/api/artworks", artworksRoutes); // 🎨 gallery
+app.use("/api/prints", printsRoutes); // 🖨️ prints
 app.use("/api/auth", authRoutes); // 🔑 auth
 app.use("/api", contactRoutes); // ✉️ contact
 app.use("/api/course", courseRoutes); // 📚 course
 app.use("/api/course-demo-videos", courseDemoVideoRoutes); // 🎬 course demo videos
 app.use("/api", categoriesRoutes); // 🏷 categories
 app.use("/api/workshops", workshopRoutes); // 🎥 workshops
+app.use("/api/hero-carousel", heroCarouselRoutes); // 🎠 hero carousel
 
 if (process.env.NODE_ENV !== "production") {
   app.get("/api/db-test", async (req, res) => {

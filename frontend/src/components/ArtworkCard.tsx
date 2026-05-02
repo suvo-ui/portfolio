@@ -123,15 +123,15 @@ export function ArtworkCard({
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 p-3.5 sm:gap-4 sm:p-5">
           <div className="min-w-0">
-            <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary/80">
+            <p className="mobile-eyebrow text-primary/80">
               {featured ? "Lead Piece" : "Collection Piece"}
             </p>
             <h3
               className={cn(
                 "mt-3 break-words font-display font-bold leading-tight text-foreground",
-                featured ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl",
+                featured ? "text-xl sm:text-3xl" : "text-lg sm:text-2xl",
               )}
             >
               {artwork.title}
@@ -146,7 +146,7 @@ export function ArtworkCard({
               <Button
                 type="button"
                 size="default"
-                className="h-10 w-full px-4 text-[11px] uppercase tracking-[0.24em]"
+                className="h-11 w-full px-4 text-[10px] uppercase tracking-[0.18em] sm:h-10 sm:text-[11px] sm:tracking-[0.24em]"
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function ArtworkCard({
               type="button"
               onClick={() => onOpen?.(artwork)}
               className={cn(
-                "inline-flex min-h-10 w-full items-center justify-center gap-2 border border-border/60 px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-muted-foreground transition-colors duration-300 group-hover:border-primary/40 group-hover:text-primary",
+                "inline-flex min-h-11 w-full items-center justify-center gap-2 border border-border/60 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors duration-300 group-hover:border-primary/40 group-hover:text-primary sm:min-h-10 sm:text-[11px] sm:tracking-[0.24em]",
                 !(artwork.price_inr && !artwork.is_sold && artwork.for_sale) &&
                   "sm:col-span-2",
               )}

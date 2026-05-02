@@ -69,7 +69,7 @@ router.post("/", adminAuth, adminUploadLimiter, async (req, res) => {
 
     const { error } = await withTimeout(
       supabase.storage.from("artworks").upload(objectPath, req.file.buffer, {
-        contentType: req.file.mimetype,
+        contentType: detectedType.contentType,
         upsert: false,
       }),
       SUPABASE_UPLOAD_TIMEOUT_MS,

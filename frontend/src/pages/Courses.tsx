@@ -512,11 +512,11 @@ export default function Courses() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_14%,hsl(var(--primary)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)]" />
           <div className="relative flex min-h-[70vh] items-center justify-center px-6">
             <div className="border border-primary/18 bg-card/55 px-8 py-8 text-center shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl">
-              <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+              <p className="mobile-eyebrow text-primary">
                 Loading
               </p>
               <div className="mx-auto mt-5 h-12 w-12 rounded-full border border-primary/25 border-t-primary animate-spin" />
-              <p className="mt-5 text-sm text-muted-foreground">
+              <p className="mobile-body-copy mt-5 text-muted-foreground">
                 Preparing the learning experience.
               </p>
             </div>
@@ -533,13 +533,13 @@ export default function Courses() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,hsl(var(--primary)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)]" />
           <div className="relative flex min-h-[70vh] items-center justify-center px-6">
             <div className="max-w-xl border border-border/60 bg-card/55 p-8 text-center shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl">
-              <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+              <p className="mobile-eyebrow text-primary">
                 Learning Page
               </p>
-              <h1 className="mt-5 font-display text-4xl text-foreground">
+              <h1 className="mobile-section-title mt-5 text-foreground sm:text-4xl">
                 Course not available.
               </h1>
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              <p className="mobile-body-copy mt-4 text-muted-foreground">
                 The course content is being rearranged right now. Please check
                 back soon.
               </p>
@@ -551,6 +551,10 @@ export default function Courses() {
   }
 
   const leadParagraph = extractLeadParagraph(course.markdown);
+  const mobileLeadParagraph =
+    leadParagraph.length > 150
+      ? `${leadParagraph.slice(0, 147).trimEnd()}...`
+      : leadParagraph;
   const liveWorkshops = workshops.filter(
     (workshop) => workshop.is_active !== false && workshop.completed !== true,
   );
@@ -637,29 +641,30 @@ export default function Courses() {
         >
           <section
             id="courses"
-            className="py-10 sm:py-14 lg:py-16"
+            className="py-8 sm:py-14 lg:py-16"
           >
-            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.04fr)_minmax(320px,0.96fr)] xl:items-start xl:gap-10">
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.04fr)_minmax(320px,0.96fr)] xl:items-start xl:gap-10">
               <motion.div variants={fadeUp} className="max-w-4xl">
                 <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-md">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                  <span className="mobile-eyebrow text-primary">
                     Learning Studio
                   </span>
                 </div>
 
-                <h1 className="mt-7 max-w-4xl font-display text-4xl font-bold leading-[0.92] text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
+                <h1 className="mobile-hero-title mt-6 max-w-4xl text-foreground xl:text-7xl">
                   Learn the visual
                   <span className="block text-gradient">
                     language of impact.
                   </span>
                 </h1>
 
-                <p className="mt-7 max-w-2xl text-base leading-relaxed text-foreground/74 sm:text-lg">
-                  {leadParagraph}
+                <p className="mobile-intro-copy mt-5 max-w-2xl text-foreground/74">
+                  <span className="md:hidden">{mobileLeadParagraph}</span>
+                  <span className="hidden md:inline">{leadParagraph}</span>
                 </p>
 
-                <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                   <Button
                     variant="gold"
                     size="xl"
@@ -681,20 +686,20 @@ export default function Courses() {
                   </Button>
                 </div>
 
-                <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+                <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
                   {heroStats.map((stat) => (
                     <motion.div
                       key={stat.label}
                       variants={fadeUp}
-                      className="app-surface border-border/60 bg-card/45 p-5"
+                      className="app-surface border-border/60 bg-card/45 p-4 sm:p-5"
                     >
-                      <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+                      <p className="mobile-label text-primary">
                         {stat.label}
                       </p>
-                      <p className="mt-3 font-display text-4xl font-bold text-foreground">
+                      <p className="mt-2 font-display text-3xl font-bold text-foreground sm:mt-3 sm:text-4xl">
                         {stat.value}
                       </p>
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      <p className="mobile-card-copy mt-2 text-muted-foreground sm:mt-3 sm:text-sm">
                         {stat.copy}
                       </p>
                     </motion.div>
@@ -705,14 +710,14 @@ export default function Courses() {
               <motion.div variants={scaleIn} className="relative">
                 <div className="absolute inset-0 translate-x-4 translate-y-4 border border-primary/16 bg-primary/6" />
 
-                <div className={cn(shellClassName, "relative p-5 sm:p-6")}>
+                <div className={cn(shellClassName, "relative p-4 sm:p-6")}>
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
                   <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+                      <p className="mobile-eyebrow text-primary">
                         Course Reel
                       </p>
-                      <h2 className="mt-3 font-display text-3xl font-bold text-foreground">
+                      <h2 className="mt-3 font-display text-2xl font-bold text-foreground sm:text-3xl">
                         A page that feels like an opening scene.
                       </h2>
                     </div>
@@ -818,7 +823,7 @@ export default function Courses() {
 
                               <button
                                 onClick={toggleMute}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
+                                className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20 sm:inline-flex"
                                 aria-label={isMuted ? "Unmute" : "Mute"}
                               >
                                 <Volume2 className="h-4 w-4" />
@@ -831,7 +836,7 @@ export default function Courses() {
                                 step={0.01}
                                 value={isMuted ? 0 : volume}
                                 onChange={handleVolumeChange}
-                                className="h-1 w-full min-w-24 cursor-pointer appearance-none rounded-lg bg-white/20 accent-primary sm:w-24"
+                                className="hidden h-1 w-full min-w-24 cursor-pointer appearance-none rounded-lg bg-white/20 accent-primary sm:block sm:w-24"
                                 aria-label="Volume control"
                               />
                             </div>
@@ -839,7 +844,7 @@ export default function Courses() {
                             <div className="flex items-center gap-2 self-end sm:self-auto">
                               <button
                                 onClick={togglePlaybackRate}
-                                className="min-h-10 rounded-md border border-white/25 bg-black/45 px-3 py-1 text-xs text-white transition hover:bg-white/20"
+                                className="hidden min-h-10 rounded-md border border-white/25 bg-black/45 px-3 py-1 text-xs text-white transition hover:bg-white/20 sm:inline-flex"
                                 aria-label="Change playback speed"
                               >
                                 {playbackRate}x
@@ -871,13 +876,13 @@ export default function Courses() {
                   ) : (
                     <div className="flex aspect-video items-center justify-center border border-border/60 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.14),transparent_32%),linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)] p-6">
                       <div className="max-w-sm text-center">
-                        <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+                        <p className="mobile-eyebrow text-primary">
                           Lesson Film
                         </p>
-                        <p className="mt-4 font-display text-3xl text-foreground">
+                        <p className="mt-4 font-display text-2xl text-foreground sm:text-3xl">
                           Visual lesson coming soon.
                         </p>
-                        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                        <p className="mobile-body-copy mt-4 text-muted-foreground">
                           The course body is live already. Video media can slide
                           into this frame as soon as it is uploaded.
                         </p>
@@ -887,7 +892,7 @@ export default function Courses() {
 
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <div className="border border-border/50 bg-background/40 p-4">
-                      <p className="font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+                      <p className="mobile-label text-primary">
                         Last Updated
                       </p>
                       <p className="mt-3 text-sm leading-relaxed text-foreground">
@@ -895,7 +900,7 @@ export default function Courses() {
                       </p>
                     </div>
                     <div className="border border-border/50 bg-background/40 p-4">
-                      <p className="font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+                      <p className="mobile-label text-primary">
                         Next Workshop
                       </p>
                       <p className="mt-3 text-sm leading-relaxed text-foreground">
@@ -914,23 +919,23 @@ export default function Courses() {
             <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_320px]">
               <motion.div
                 variants={fadeUp}
-                className={cn(shellClassName, "p-6 sm:p-8 lg:p-10")}
+                className={cn(shellClassName, "p-5 sm:p-8 lg:p-10")}
               >
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-                <div className="grid gap-10 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-stretch">
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-stretch">
                   <div className="flex flex-col lg:h-full">
                     <div>
-                    <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                    <p className="mobile-eyebrow text-primary">
                       Course Architecture
                     </p>
-                    <h2 className="mt-4 max-w-md font-display text-4xl font-bold leading-[0.98] text-foreground">
+                    <h2 className="mobile-section-title mt-4 max-w-md text-foreground">
                       A premium syllabus experience
                       <span className="block text-foreground/72">
                         structured for clarity, progression, and studio-level
                         polish.
                       </span>
                     </h2>
-                    <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground md:text-base">
+                    <p className="mobile-body-copy mt-5 max-w-md text-muted-foreground">
                       Explore each module with achievable milestones, hands-on
                       lessons, and an organized learning path.
                     </p>
@@ -1012,7 +1017,7 @@ export default function Courses() {
                   </div>
 
                   <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <article className="rounded-xl border border-border/60 bg-background/70 p-4 text-center">
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">
                           Modules
@@ -1256,14 +1261,14 @@ export default function Courses() {
                 className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-end"
               >
                 <div>
-                  <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                  <p className="mobile-eyebrow text-primary">
                     Live Workshops
                   </p>
-                  <h2 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-[1] text-foreground sm:text-4xl md:text-5xl">
+                  <h2 className="mobile-section-title mt-4 max-w-3xl text-foreground">
                     Workshops with cleaner layout, clearer details, and better spacing.
                   </h2>
                 </div>
-                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
+                <p className="mobile-body-copy max-w-sm text-muted-foreground">
                   Each session gets room to breathe without crowding the viewport.
                 </p>
               </motion.div>
@@ -1275,17 +1280,17 @@ export default function Courses() {
                 >
                   <div className="mb-6 inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-md">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                    <span className="mobile-eyebrow text-primary">
                       Workshop Studio
                     </span>
                   </div>
-                  <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                  <p className="mobile-eyebrow text-primary">
                     Workshop Update
                   </p>
-                  <h3 className="mt-4 font-display text-3xl text-foreground">
+                  <h3 className="mobile-section-title mt-4 text-foreground">
                     New sessions are being composed right now.
                   </h3>
-                  <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+                  <p className="mobile-body-copy mx-auto mt-4 max-w-2xl text-muted-foreground">
                     The page is ready for workshop drops. As soon as a live
                     session is published from the admin side, it will land here
                     with the updated layout.
@@ -1315,7 +1320,7 @@ export default function Courses() {
                       )}
                     >
                       {/* STATUS */}
-                      <div className="absolute left-6 top-6 z-10">
+                      <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
                         <div
                           className={cn(
                             "inline-flex items-center gap-2 border px-3 py-1.5 backdrop-blur-md",
@@ -1352,7 +1357,7 @@ export default function Courses() {
 
                       {/* ADMIN BUTTONS */}
                       {isAdmin && (
-                        <div className="absolute right-4 top-16 z-10 flex flex-wrap justify-end gap-2 sm:right-6 sm:top-6">
+                        <div className="absolute right-4 top-14 z-10 flex flex-wrap justify-end gap-2 sm:right-6 sm:top-6">
                           <button
                             onClick={() =>
                               handleToggleComplete(
@@ -1381,12 +1386,12 @@ export default function Courses() {
                       )}
 
                       {/* CONTENT */}
-                      <div className="flex flex-1 flex-col p-5 sm:p-6">
-                        <h3 className="text-xl font-bold mb-2">
+                      <div className="flex flex-1 flex-col p-4 sm:p-6">
+                        <h3 className="mb-2 text-lg font-bold sm:text-xl">
                           {workshop.title}
                         </h3>
 
-                        <p className="text-sm text-zinc-400 mb-4 flex-1">
+                        <p className="mb-4 flex-1 text-sm leading-relaxed text-zinc-400">
                           {workshop.description || "Coming soon"}
                         </p>
 

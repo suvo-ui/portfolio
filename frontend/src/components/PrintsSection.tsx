@@ -10,54 +10,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { Print } from "@/types/print";
 
-interface Artwork {
-  id: number;
-  title: string;
-  image_url: string;
-  description?: string;
-  price_inr?: number;
-  is_sold?: boolean;
-  for_sale?: boolean;
-}
-
-interface GalleryCategory {
-  name: string;
-  artworks: Artwork[];
-  eyebrow?: string;
-  description?: string;
-}
-
-interface GallerySectionProps {
-  category: GalleryCategory;
+interface PrintsSectionProps {
+  prints: Print[];
   initialCount?: number;
   isAdmin?: boolean;
-  sectionIndex?: number;
-  onDeleteArtwork?: (id: number) => void;
-  onOpenArtwork?: (artwork: Artwork) => void;
-  onEditArtwork?: (artwork: Artwork) => void;
+  onDeletePrint?: (id: number) => void;
+  onOpenPrint?: (print: Print) => void;
+  onEditPrint?: (print: Print) => void;
 }
 
-export function GallerySection({
-  category,
+export function PrintsSection({
+  prints,
   initialCount = 4,
   isAdmin = false,
-  sectionIndex = 0,
-  onDeleteArtwork,
-  onOpenArtwork,
-  onEditArtwork,
-}: GallerySectionProps) {
-  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  onDeletePrint,
+  onOpenPrint,
+  onEditPrint,
+}: PrintsSectionProps) {
+  const [showPrintsModal, setShowPrintsModal] = useState(false);
 
-  const visibleArtworks = useMemo(
-    () => category.artworks.slice(0, initialCount),
-    [category.artworks, initialCount],
+  const visiblePrints = useMemo(
+    () => prints.slice(0, initialCount),
+    [prints, initialCount],
   );
-  const hasOverflow = category.artworks.length > visibleArtworks.length;
+  const hasOverflow = prints.length > visiblePrints.length;
 
-  if (!category.artworks || category.artworks.length === 0) return null;
-
-  const sectionNumber = String(sectionIndex + 1).padStart(2, "0");
+  if (!prints || prints.length === 0) return null;
 
   return (
     <section className="py-8 sm:py-10 lg:py-12">
@@ -69,14 +49,12 @@ export function GallerySection({
           <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
             <div className="hidden w-28 lg:block">
               <p className="font-display text-7xl leading-none text-primary/18 xl:text-8xl">
-                {sectionNumber}
+                01
               </p>
               <div className="mt-4 h-px w-full bg-gradient-to-r from-primary/40 to-transparent" />
-              {category.eyebrow && (
-                <p className="mt-4 font-display text-[11px] uppercase tracking-[0.34em] text-primary">
-                  {category.eyebrow}
-                </p>
-              )}
+              <p className="mt-4 font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+                Print Collection
+              </p>
             </div>
 
             <div className="min-w-0">
@@ -84,24 +62,21 @@ export function GallerySection({
                 <div className="min-w-0">
                   <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 lg:hidden">
                     <span className="mobile-eyebrow text-primary">
-                      {sectionNumber}
+                      01
                     </span>
-                    {category.eyebrow && (
-                      <span className="mobile-label text-primary">
-                        {category.eyebrow}
-                      </span>
-                    )}
+                    <span className="mobile-label text-primary">
+                      Print Collection
+                    </span>
                   </div>
 
                   <h2 className="mobile-section-title mt-4 text-foreground">
-                    {category.name}
+                    Prints
                   </h2>
 
-                  {category.description && (
-                    <p className="mobile-body-copy mt-4 max-w-2xl text-muted-foreground">
-                      {category.description}
-                    </p>
-                  )}
+                  <p className="mobile-body-copy mt-4 max-w-2xl text-muted-foreground">
+                    High-quality prints of selected artworks, available for
+                    purchase.
+                  </p>
                 </div>
 
                 {hasOverflow && (
@@ -109,7 +84,7 @@ export function GallerySection({
                     variant="outline"
                     size="lg"
                     className="w-full lg:w-auto"
-                    onClick={() => setShowGalleryModal(true)}
+                    onClick={() => setShowPrintsModal(true)}
                   >
                     See More
                     <ArrowRight className="h-4 w-4" />
@@ -119,23 +94,23 @@ export function GallerySection({
 
               {hasOverflow ? (
                 <ArtworkPreviewCarousel
-                  items={category.artworks}
+                  items={prints}
                   isAdmin={isAdmin}
-                  onDelete={onDeleteArtwork}
-                  onOpen={onOpenArtwork}
-                  onEdit={onEditArtwork}
+                  onDelete={onDeletePrint}
+                  onOpen={onOpenPrint}
+                  onEdit={onEditPrint}
                 />
               ) : (
                 <div className="mt-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-                  {visibleArtworks.map((artwork, index) => (
+                  {visiblePrints.map((print, index) => (
                     <ArtworkCard
-                      key={artwork.id}
-                      artwork={artwork}
+                      key={print.id}
+                      artwork={print}
                       priority={index < 2}
                       isAdmin={isAdmin}
-                      onDelete={(id) => onDeleteArtwork?.(id)}
-                      onOpen={onOpenArtwork}
-                      onEdit={onEditArtwork}
+                      onDelete={(id) => onDeletePrint?.(id)}
+                      onOpen={onOpenPrint}
+                      onEdit={onEditPrint}
                     />
                   ))}
                 </div>
@@ -145,20 +120,20 @@ export function GallerySection({
         </div>
       </div>
 
-      <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
+      <Dialog open={showPrintsModal} onOpenChange={setShowPrintsModal}>
         <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>{category.name}</DialogTitle>
+            <DialogTitle>Prints</DialogTitle>
           </DialogHeader>
           <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-            {category.artworks.map((artwork) => (
+            {prints.map((print) => (
               <ArtworkCard
-                key={artwork.id}
-                artwork={artwork}
+                key={print.id}
+                artwork={print}
                 isAdmin={isAdmin}
-                onDelete={(id) => onDeleteArtwork?.(id)}
-                onOpen={onOpenArtwork}
-                onEdit={onEditArtwork}
+                onDelete={(id) => onDeletePrint?.(id)}
+                onOpen={onOpenPrint}
+                onEdit={onEditPrint}
               />
             ))}
           </div>

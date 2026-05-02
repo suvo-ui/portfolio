@@ -60,8 +60,10 @@ export default function Checkout() {
     return (
       <Layout>
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-28 text-center sm:px-6 sm:pt-32 lg:px-8">
-          <h1 className="text-3xl font-bold sm:text-4xl">Your cart is empty</h1>
-          <p className="mt-4 text-muted-foreground">
+          <h1 className="mobile-page-title text-foreground sm:text-4xl">
+            Your cart is empty
+          </h1>
+          <p className="mobile-body-copy mt-4 text-muted-foreground">
             Add some items to your cart before checking out.
           </p>
           <Button asChild size="lg" className="mt-8">
@@ -74,7 +76,7 @@ export default function Checkout() {
 
   return (
     <Layout>
-      <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-28 sm:px-6 sm:pt-32 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-32 lg:px-8">
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -82,19 +84,19 @@ export default function Checkout() {
           className="mx-auto max-w-6xl"
         >
           <div className="max-w-2xl">
-            <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+            <p className="mobile-eyebrow text-primary">
               Checkout
             </p>
-            <h1 className="mt-4 text-3xl font-bold sm:text-4xl md:text-5xl">
+            <h1 className="mobile-page-title mt-4 text-foreground">
               Review your order.
             </h1>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <p className="mobile-body-copy mt-4 text-muted-foreground">
               Keep the final step clean, readable, and easy to complete on any
               screen.
             </p>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8">
+          <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8">
             <Card className="border-border/60 bg-card/55 lg:sticky lg:top-28">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>

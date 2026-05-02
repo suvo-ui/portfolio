@@ -5,7 +5,13 @@ import { HttpError } from "./http.js";
 const SUPPORTED_IMAGE_TYPES = [
   {
     extension: "jpg",
-    mimeTypes: new Set(["image/jpeg", "image/pjpeg"]),
+    contentType: "image/jpeg",
+    mimeTypes: new Set([
+      "image/jpeg",
+      "image/pjpeg",
+      "image/jpg",
+      "image/jfif",
+    ]),
     matches(buffer) {
       return (
         buffer.length >= 3 &&
@@ -17,7 +23,8 @@ const SUPPORTED_IMAGE_TYPES = [
   },
   {
     extension: "png",
-    mimeTypes: new Set(["image/png"]),
+    contentType: "image/png",
+    mimeTypes: new Set(["image/png", "image/x-png"]),
     matches(buffer) {
       return (
         buffer.length >= 8 &&
@@ -34,6 +41,7 @@ const SUPPORTED_IMAGE_TYPES = [
   },
   {
     extension: "gif",
+    contentType: "image/gif",
     mimeTypes: new Set(["image/gif"]),
     matches(buffer) {
       const signature = buffer.toString("ascii", 0, 6);
@@ -42,7 +50,8 @@ const SUPPORTED_IMAGE_TYPES = [
   },
   {
     extension: "webp",
-    mimeTypes: new Set(["image/webp"]),
+    contentType: "image/webp",
+    mimeTypes: new Set(["image/webp", "image/x-webp"]),
     matches(buffer) {
       return (
         buffer.length >= 12 &&
@@ -56,6 +65,7 @@ const SUPPORTED_IMAGE_TYPES = [
 const SUPPORTED_VIDEO_TYPES = [
   {
     extension: "mp4",
+    contentType: "video/mp4",
     mimeTypes: new Set(["video/mp4", "video/quicktime"]),
     matches(buffer) {
       if (buffer.length < 12 || buffer.toString("ascii", 4, 8) !== "ftyp") {
@@ -77,6 +87,7 @@ const SUPPORTED_VIDEO_TYPES = [
   },
   {
     extension: "webm",
+    contentType: "video/webm",
     mimeTypes: new Set(["video/webm"]),
     matches(buffer) {
       return (
@@ -90,10 +101,6 @@ const SUPPORTED_VIDEO_TYPES = [
   },
 ];
 
-function normalizeMimeType(file) {
-  return String(file?.mimetype || "").trim().toLowerCase();
-}
-
 export function detectUploadedFileType(file, kind) {
   if (!file || !Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
     throw new HttpError(400, `No ${kind} file uploaded`);
@@ -105,11 +112,6 @@ export function detectUploadedFileType(file, kind) {
 
   if (!detectedType) {
     throw new HttpError(400, `Unsupported ${kind} file type`);
-  }
-
-  const mimeType = normalizeMimeType(file);
-  if (mimeType && !detectedType.mimeTypes.has(mimeType)) {
-    throw new HttpError(400, `Unsupported ${kind} MIME type`);
   }
 
   return detectedType;

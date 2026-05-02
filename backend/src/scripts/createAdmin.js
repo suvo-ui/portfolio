@@ -9,14 +9,14 @@ const pool = new Pool({
 
 const createAdmin = async () => {
   try {
-    const email = "paperslayer99@gmail.com";       // change later
-    const password = "LiquidCh@os99";    // change later
+    const email = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     await pool.query(
       "INSERT INTO admins (email, password_hash) VALUES ($1, $2)",
-      [email, passwordHash]
+      [email, passwordHash],
     );
 
     console.log("✅ Admin created successfully");

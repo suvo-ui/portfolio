@@ -77,18 +77,18 @@ export function Footer() {
       </div>
 
       <div className="relative mx-auto w-full max-w-7xl px-4 pb-8 pt-12 sm:px-6 sm:pt-16 lg:px-8 lg:pb-10 lg:pt-20">
-        <div className="relative overflow-hidden border border-primary/15 bg-card/70 p-5 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl sm:p-8 lg:p-10">
+        <div className="relative overflow-hidden border border-primary/15 bg-card/70 p-4 shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl sm:p-8 lg:p-10">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end">
+          <div className="grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end">
             <div className="min-w-0">
-              <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+              <p className="mobile-eyebrow text-primary">
                 Closing Frame
               </p>
-              <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold leading-[1] text-foreground sm:text-4xl md:text-5xl">
+              <h2 className="mobile-section-title mt-4 max-w-2xl text-foreground">
                 Keep the energy moving beyond the last scroll.
               </h2>
-              <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              <p className="mobile-body-copy mt-5 max-w-xl text-muted-foreground">
                 Explore available work, start a commission conversation, or move
                 into the learning side of the studio without the footer feeling
                 like dead space.
@@ -117,16 +117,16 @@ export function Footer() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
               {focusAreas.map((item) => (
                 <div
                   key={item.title}
-                  className="border border-border/60 bg-background/50 p-5 transition-colors duration-300 hover:border-primary/40"
+                  className="border border-border/60 bg-background/50 p-4 transition-colors duration-300 hover:border-primary/40 sm:p-5"
                 >
-                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                  <p className="mobile-label text-primary">
                     {item.title}
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  <p className="mobile-card-copy mt-3 text-muted-foreground sm:text-sm">
                     {item.copy}
                   </p>
                 </div>
@@ -135,7 +135,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div className="min-w-0 sm:col-span-2 lg:col-span-1">
             <Link
               to="/"
@@ -143,7 +143,7 @@ export function Footer() {
             >
               PAPER<span className="text-primary">.</span>SLAYER
             </Link>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            <p className="mobile-body-copy mt-4 text-muted-foreground">
               Expressive contemporary work built around texture, tension, and
               motion. Created for collectors, commissions, and artists who want
               more atmosphere in the frame.
@@ -155,7 +155,7 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="mb-4 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+            <p className="mobile-eyebrow mb-4 text-primary">
               Navigate
             </p>
             <nav className="grid gap-3">
@@ -169,7 +169,7 @@ export function Footer() {
                   <span className="font-display text-sm uppercase tracking-[0.18em] text-foreground transition-colors group-hover:text-primary">
                     {link.label}
                   </span>
-                  <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
+                  <span className="mobile-card-copy mt-2 block text-muted-foreground sm:text-sm">
                     {link.description}
                   </span>
                 </Link>
@@ -178,7 +178,7 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="mb-4 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+            <p className="mobile-eyebrow mb-4 text-primary">
               Connect
             </p>
             <div className="grid gap-3">
@@ -216,8 +216,8 @@ export function Footer() {
             </div>
           </div>
 
-          <div>
-            <p className="mb-4 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+          <div className="hidden lg:block">
+            <p className="mobile-eyebrow mb-4 text-primary">
               Studio
             </p>
             <div className="grid gap-3">
@@ -226,7 +226,7 @@ export function Footer() {
                   <p className="font-display text-sm uppercase tracking-[0.18em] text-foreground">
                     {item.title}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  <p className="mobile-card-copy mt-2 text-muted-foreground sm:text-sm">
                     {item.copy}
                   </p>
                 </div>

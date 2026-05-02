@@ -137,6 +137,10 @@
     min-height: 100%;
   }
 
+  :where(#gallery, #about, #courses, #workshops) {
+    scroll-margin-top: 5.5rem;
+  }
+
   img,
   video,
   iframe,
@@ -201,6 +205,12 @@
   h5,
   h6 {
     @apply font-display;
+  }
+
+  @media (min-width: 640px) {
+    :where(#gallery, #about, #courses, #workshops) {
+      scroll-margin-top: 6.5rem;
+    }
   }
 }
 
@@ -275,6 +285,46 @@
 
   .app-pill {
     @apply inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/45 px-4 py-2 backdrop-blur-md;
+  }
+
+  .mobile-eyebrow {
+    @apply font-display text-[10px] uppercase tracking-[0.24em] sm:text-[11px] sm:tracking-[0.32em];
+  }
+
+  .mobile-label {
+    @apply text-[10px] uppercase tracking-[0.22em] sm:text-[11px] sm:tracking-[0.28em];
+  }
+
+  .mobile-hero-title {
+    @apply font-display text-[2.25rem] font-bold leading-[0.95] sm:text-5xl md:text-6xl lg:text-7xl;
+  }
+
+  .mobile-page-title {
+    @apply font-display text-[2.25rem] font-bold leading-[0.98] sm:text-5xl md:text-6xl;
+  }
+
+  .mobile-section-title {
+    @apply font-display text-2xl font-bold leading-[1.02] sm:text-4xl md:text-5xl;
+  }
+
+  .mobile-pull-quote {
+    @apply font-display text-xl leading-tight sm:text-3xl md:text-4xl;
+  }
+
+  .mobile-intro-copy {
+    @apply text-sm leading-relaxed sm:text-base md:text-lg;
+  }
+
+  .mobile-body-copy {
+    @apply text-sm leading-relaxed sm:text-base;
+  }
+
+  .mobile-card-copy {
+    @apply text-xs leading-relaxed sm:text-sm;
+  }
+
+  .mobile-section-spacing {
+    @apply py-8 sm:py-12 lg:py-16;
   }
 
   .admin-control {

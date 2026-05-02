@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { apiUrl } from "@/lib/api";
+
+interface Category {
+  id: number;
+  name: string;
+}
 
 interface Artwork {
   id: number;
@@ -12,6 +18,8 @@ interface Artwork {
   is_sold?: boolean;
   for_sale?: boolean;
   available_for_print?: boolean;
+  category?: string;
+  category_id?: number;
 }
 
 interface Props {
@@ -29,15 +37,32 @@ export default function ArtworkModal({
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     price_inr: "",
     size: "",
     image_url: "",
+    category_id: null as number | null,
     for_sale: false,
     available_for_print: false,
   });
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/categories"));
+        if (!response.ok) throw new Error("Failed to load categories");
+        const data = await response.json();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     if (!artwork) return;
@@ -49,26 +74,37 @@ export default function ArtworkModal({
       price_inr: artwork.price_inr?.toString() ?? "",
       size: artwork.size ?? "",
       image_url: artwork.image_url,
+      category_id:
+        artwork.category_id ??
+        categories.find((category) => category.name === artwork.category)?.id ??
+        null,
       for_sale: artwork.for_sale ?? false,
       available_for_print: artwork.available_for_print ?? false,
     });
-  }, [artwork]);
-
-  if (!artwork) return null;
+  }, [artwork, categories]);
 
   const { addItem, setCartOpen } = useCart();
 
+  if (!artwork) return null;
+
   const usd = artwork.price_inr ? (artwork.price_inr / 83).toFixed(0) : null;
 
+  const effectivePrice = isEditing
+    ? formData.price_inr
+      ? Number(formData.price_inr)
+      : null
+    : (artwork.price_inr ?? null);
+
   const whatsappMessage = encodeURIComponent(
-    artwork.for_sale && artwork.price_inr
-      ? `Hello, I'm interested in "${artwork.title}" priced at INR ${artwork.price_inr}.`
+    effectivePrice
+      ? `Hello, I'm interested in "${artwork.title}" priced at INR ${effectivePrice}.`
       : `Hello, I'm interested in "${artwork.title}".`,
   );
 
   const whatsappLink = `https://wa.me/8100135695?text=${whatsappMessage}`;
 
-  const canAddToCart = Boolean(artwork.price_inr && !artwork.is_sold);
+  const canAddToCart = Boolean(effectivePrice && !artwork.is_sold);
+  const canBuy = Boolean(effectivePrice && !artwork.is_sold);
 
   const handleAddToCart = () => {
     if (!canAddToCart) return;
@@ -101,6 +137,7 @@ export default function ArtworkModal({
         image_url: formData.image_url || null,
         price_inr: formData.price_inr ? Number(formData.price_inr) : null,
         size: formData.size || null,
+        category_id: formData.category_id ?? undefined,
         for_sale: formData.for_sale,
         available_for_print: formData.available_for_print,
       };
@@ -139,51 +176,101 @@ export default function ArtworkModal({
 
   const updateFormField = (
     field: keyof typeof formData,
-    value: string | boolean,
+    value: string | boolean | number | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:p-6"
+    <motion.div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-2 backdrop-blur-sm sm:p-6"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      <div
-        className="relative mx-auto grid w-full max-w-6xl grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+      <motion.div
+        className="relative mx-auto grid h-[calc(100svh-1rem)] max-h-[calc(100svh-1rem)] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl sm:h-auto sm:max-h-[90svh] lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
         onClick={(event) => event.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{
+          duration: 0.4,
+          ease: [0.22, 1, 0.36, 1],
+        }}
       >
-        <button
+        <motion.button
           onClick={onClose}
-          className="absolute right-4 top-4 z-20 inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 bg-black/45 px-4 text-sm text-white transition hover:bg-black/65"
+          className="absolute right-3 top-3 z-20 inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 bg-black/55 px-3 text-sm text-white transition hover:bg-black/70 sm:right-4 sm:top-4 sm:px-4"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           Close
-        </button>
+        </motion.button>
 
-        <div className="relative flex items-center justify-center bg-black p-4 sm:p-6 lg:p-8">
-          <div className="w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950/80">
-            <img
+        <div className="relative flex items-center justify-center bg-black p-3 sm:p-6 lg:p-8">
+          <motion.div
+            className="w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950/80"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              y: 0,
+              boxShadow: [
+                "0 0 0 rgba(255, 255, 255, 0)",
+                "0 0 20px rgba(255, 255, 255, 0.1)",
+                "0 0 0 rgba(255, 255, 255, 0)",
+              ],
+            }}
+            transition={{
+              duration: 0.6,
+              ease: [0.22, 1, 0.36, 1],
+              boxShadow: {
+                duration: 3,
+                repeat: 0,
+                ease: "easeInOut",
+              },
+            }}
+          >
+            <motion.img
               src={artwork.image_url}
               alt={artwork.title}
-              className="aspect-[4/5] w-full object-cover lg:aspect-auto lg:max-h-[78vh] lg:object-contain"
+              className="aspect-[4/5] w-full cursor-pointer object-cover lg:aspect-auto lg:max-h-[78vh] lg:object-contain"
+              transition={{
+                duration: 4,
+                repeat: 0,
+                ease: "easeInOut",
+              }}
+              whileHover={{
+                scale: 1.05,
+              }}
+              whileTap={{ scale: 0.98 }}
             />
-          </div>
+          </motion.div>
 
           {artwork.is_sold && (
-            <span className="absolute left-4 top-4 rounded-lg bg-red-600 px-3 py-1 text-sm text-white sm:left-6 sm:top-6">
+            <motion.span
+              className="absolute left-4 top-4 rounded-lg bg-red-600 px-3 py-1 text-sm text-white sm:left-6 sm:top-6"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
               Collected
-            </span>
+            </motion.span>
           )}
         </div>
 
-        <div className="flex flex-col justify-between p-5 sm:p-6 lg:p-8">
+        <div className="flex min-h-0 flex-col justify-between overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-display text-[11px] uppercase tracking-[0.3em] text-primary">
-                  Artwork Detail
-                </p>
-                <h2 className="mt-4 break-words font-display text-3xl font-bold text-white sm:text-4xl">
+                <p className="mobile-eyebrow text-primary">Artwork Detail</p>
+                <h2 className="mt-3 break-words font-display text-2xl font-bold text-white sm:mt-4 sm:text-4xl">
                   {artwork.title}
                 </h2>
               </div>
@@ -194,7 +281,7 @@ export default function ArtworkModal({
                     <button
                       type="button"
                       onClick={() => setIsEditing(true)}
-                      className="inline-flex min-h-12 items-center justify-center rounded-lg border border-primary/40 bg-primary/10 px-5 py-3 text-sm font-medium text-primary transition hover:bg-primary/15"
+                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/15 sm:min-h-12 sm:px-5"
                     >
                       Edit Artwork
                     </button>
@@ -204,14 +291,14 @@ export default function ArtworkModal({
                         type="button"
                         onClick={handleSaveArtwork}
                         disabled={isSaving}
-                        className="inline-flex min-h-12 items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-medium text-black transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-medium text-black transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:px-5"
                       >
                         {isSaving ? "Saving..." : "Save Changes"}
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsEditing(false)}
-                        className="inline-flex min-h-12 items-center justify-center rounded-lg border border-white/10 bg-zinc-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-zinc-800 sm:min-h-12 sm:px-5"
                       >
                         Cancel
                       </button>
@@ -222,7 +309,7 @@ export default function ArtworkModal({
             </div>
 
             {isEditing ? (
-              <div className="mt-6 space-y-4 rounded-3xl border border-white/10 bg-zinc-950/60 p-4 sm:p-6">
+              <div className="mt-5 space-y-4 rounded-3xl border border-white/10 bg-zinc-950/60 p-4 sm:mt-6 sm:p-6">
                 <div className="grid gap-4">
                   <label className="space-y-2 text-sm text-white/80">
                     <span>Title</span>
@@ -283,7 +370,28 @@ export default function ArtworkModal({
                     />
                   </label>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-2 text-sm text-white/80">
+                      <span>Category</span>
+                      <select
+                        value={formData.category_id ?? ""}
+                        onChange={(event) =>
+                          updateFormField(
+                            "category_id",
+                            Number(event.target.value) || null,
+                          )
+                        }
+                        className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-primary/60"
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
                     <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/80">
                       <input
                         type="checkbox"
@@ -295,6 +403,8 @@ export default function ArtworkModal({
                       />
                       For sale
                     </label>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/80">
                       <input
                         type="checkbox"
@@ -315,17 +425,15 @@ export default function ArtworkModal({
             ) : (
               <>
                 {artwork.description && (
-                  <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                  <p className="mobile-body-copy mt-4 text-zinc-400 sm:text-base">
                     {artwork.description}
                   </p>
                 )}
 
-                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-6 sm:grid-cols-2">
                   {artwork.price_inr && artwork.for_sale && (
-                    <div className="border border-white/10 bg-zinc-950/60 p-4">
-                      <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
-                        Price
-                      </p>
+                    <div className="border border-white/10 bg-zinc-950/60 p-3.5 sm:p-4">
+                      <p className="mobile-label text-primary">Price</p>
                       <p className="mt-2 text-lg font-semibold text-white">
                         INR {artwork.price_inr.toLocaleString()}
                       </p>
@@ -336,10 +444,8 @@ export default function ArtworkModal({
                   )}
 
                   {artwork.size && (
-                    <div className="border border-white/10 bg-zinc-950/60 p-4">
-                      <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
-                        Size
-                      </p>
+                    <div className="border border-white/10 bg-zinc-950/60 p-3.5 sm:p-4">
+                      <p className="mobile-label text-primary">Size</p>
                       <p className="mt-2 text-sm text-zinc-300">
                         {artwork.size}
                       </p>
@@ -356,8 +462,8 @@ export default function ArtworkModal({
             )}
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {!artwork.is_sold && (
+          <div className="sticky bottom-0 z-10 -mx-4 mt-6 grid grid-cols-1 gap-3 border-t border-white/10 bg-zinc-900/96 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none sm:grid-cols-2">
+            {canBuy && (
               <a
                 href={whatsappLink}
                 target="_blank"
@@ -376,7 +482,7 @@ export default function ArtworkModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

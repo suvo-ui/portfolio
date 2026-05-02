@@ -38,6 +38,38 @@ export function ensureSchemaReady() {
       `;
 
       await tx`
+        CREATE TABLE IF NOT EXISTS prints (
+          id SERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          image_url TEXT NOT NULL,
+          category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+          price_inr NUMERIC,
+          size TEXT,
+          is_sold BOOLEAN NOT NULL DEFAULT FALSE,
+          for_sale BOOLEAN NOT NULL DEFAULT FALSE,
+          deleted_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
+
+      await tx`
+        ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP
+      `;
+
+      await tx`
+        ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS source_artwork_id INTEGER REFERENCES artworks(id) ON DELETE SET NULL
+      `;
+
+      await tx`
+        CREATE UNIQUE INDEX IF NOT EXISTS prints_source_artwork_id_unique
+        ON prints (source_artwork_id)
+        WHERE source_artwork_id IS NOT NULL
+      `;
+
+      await tx`
         ALTER TABLE workshops
         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP
       `;

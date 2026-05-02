@@ -1,5 +1,12 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { ArrowUpRight, Instagram, Mail, MapPin, Send, Sparkles } from "lucide-react";
+import {
+  ArrowUpRight,
+  Instagram,
+  Mail,
+  MapPin,
+  Send,
+  Sparkles,
+} from "lucide-react";
 
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -51,7 +58,15 @@ const inquiryTypes = [
   },
 ] as const;
 
-const contactLinks = [
+type ContactLink = {
+  title: string;
+  value: string;
+  href?: string;
+  copy: string;
+  icon: typeof Mail;
+};
+
+const contactLinks: ContactLink[] = [
   {
     title: "Email",
     value: "paperslayer99@gmail.com",
@@ -72,7 +87,7 @@ const contactLinks = [
     copy: "A quicker way to connect before we move into details.",
     icon: Instagram,
   },
-] as const;
+];
 
 const premiumNotes = [
   "Reply window is usually within 24-48 hours.",
@@ -92,7 +107,8 @@ const Contact = () => {
   });
 
   const selectedInquiry =
-    inquiryTypes.find((inquiry) => inquiry.value === formData.type) ?? inquiryTypes[0];
+    inquiryTypes.find((inquiry) => inquiry.value === formData.type) ??
+    inquiryTypes[0];
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -137,7 +153,9 @@ const Contact = () => {
     }
   };
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [event.target.name]: event.target.value,
@@ -152,43 +170,43 @@ const Contact = () => {
           <div className="absolute inset-0 opacity-[0.05] [background-image:linear-gradient(hsl(var(--foreground)/0.12)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.12)_1px,transparent_1px)] [background-size:120px_120px]" />
         </div>
 
-        <section className="relative py-12 sm:py-16 lg:py-20">
+        <section className="relative py-8 sm:py-16 lg:py-20">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
-              <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary sm:text-sm">
+              <p className="mobile-eyebrow text-primary sm:text-sm">
                 Get in Touch
               </p>
 
-              <h1 className="mt-5 font-display text-4xl font-bold leading-[1.02] text-foreground sm:text-5xl md:text-6xl">
+              <h1 className="mobile-page-title mt-4 text-foreground">
                 Let&apos;s create
                 <span className="block text-gradient">together.</span>
               </h1>
 
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              <p className="mobile-intro-copy mt-5 max-w-2xl text-muted-foreground">
                 Whether you are interested in acquiring a piece, commissioning
                 custom work, or starting a collaboration, this page should feel
                 clear and easy to act on from the first screen.
               </p>
             </div>
 
-            <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-10">
+            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-10">
               <div className="grid grid-cols-1 gap-6">
-                <div className="app-surface relative border-primary/18 bg-[linear-gradient(160deg,hsl(var(--card)/0.92),hsl(var(--background)/0.86))] p-5 sm:p-7">
+                <div className="app-surface relative border-primary/18 bg-[linear-gradient(160deg,hsl(var(--card)/0.92),hsl(var(--background)/0.86))] p-4 sm:p-7">
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
                   <div className="inline-flex items-center gap-2 border border-primary/20 bg-primary/10 px-4 py-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+                    <span className="mobile-label text-primary">
                       Studio Notes
                     </span>
                   </div>
 
-                  <p className="mt-6 max-w-md font-display text-2xl leading-[1.12] text-foreground sm:text-3xl">
+                  <p className="mt-5 max-w-md font-display text-xl leading-[1.12] text-foreground sm:text-3xl">
                     The strongest messages usually begin with the mood, the
                     scale, and what you want the work to do in the room.
                   </p>
 
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
                     {premiumNotes.map((note) => (
                       <div
                         key={note}
@@ -209,8 +227,14 @@ const Contact = () => {
                         <a
                           key={item.title}
                           href={item.href}
-                          target={item.href.startsWith("http") ? "_blank" : undefined}
-                          rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                          target={
+                            item.href.startsWith("http") ? "_blank" : undefined
+                          }
+                          rel={
+                            item.href.startsWith("http")
+                              ? "noopener noreferrer"
+                              : undefined
+                          }
                           className="app-surface group flex min-h-12 flex-col gap-4 border border-border/55 bg-card/55 p-5 transition-all duration-300 hover:border-primary/40 hover:bg-card/70 sm:flex-row sm:items-start"
                         >
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-primary/20 bg-primary/10">
@@ -260,17 +284,17 @@ const Contact = () => {
               <div className="relative">
                 <div className="absolute inset-0 translate-x-3 translate-y-3 border border-primary/16 bg-primary/5" />
 
-                <div className="relative overflow-hidden border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.94),hsl(var(--background)/0.92))] p-5 shadow-[0_28px_90px_hsl(0_0%_0%/0.3)] backdrop-blur-xl sm:p-6 lg:p-8">
+                <div className="relative overflow-hidden border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.94),hsl(var(--background)/0.92))] p-4 shadow-[0_28px_90px_hsl(0_0%_0%/0.3)] backdrop-blur-xl sm:p-6 lg:p-8">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_28%)]" />
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
                   <div className="relative">
-                    <div className="flex flex-col gap-4 border-b border-border/50 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex flex-col gap-4 border-b border-border/50 pb-4 sm:flex-row sm:items-start sm:justify-between sm:pb-5">
                       <div>
-                        <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+                        <p className="mobile-eyebrow text-primary">
                           {selectedInquiry.label}
                         </p>
-                        <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+                        <h2 className="mobile-section-title mt-3 text-foreground sm:text-4xl">
                           Start a conversation.
                         </h2>
                       </div>
@@ -280,11 +304,11 @@ const Contact = () => {
                       </div>
                     </div>
 
-                    <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mobile-body-copy mt-5 text-muted-foreground">
                       {selectedInquiry.copy}
                     </p>
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:space-y-5">
                       <div className="space-y-2">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                           <Label className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80">

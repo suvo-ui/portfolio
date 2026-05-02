@@ -15,24 +15,9 @@ export function AboutSection({
   availableCount,
   curatedShelfCount,
 }: AboutSectionProps) {
-  const studioStats = [
-    {
-      value: String(artworkCount).padStart(2, "0"),
-      label: "Works in rotation",
-    },
-    {
-      value: String(availableCount).padStart(2, "0"),
-      label: "Open for inquiry",
-    },
-    {
-      value: String(curatedShelfCount).padStart(2, "0"),
-      label: "Curated shelves",
-    },
-    {
-      value: "WB",
-      label: "Studio base",
-    },
-  ];
+  void artworkCount;
+  void availableCount;
+  void curatedShelfCount;
 
   const studioPrinciples = [
     {
@@ -50,23 +35,26 @@ export function AboutSection({
   ];
 
   return (
-    <section id="about" className="relative overflow-hidden py-12 sm:py-16 lg:py-20">
+    <section
+      id="about"
+      className="relative overflow-hidden py-8 sm:py-16 lg:py-20"
+    >
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,hsl(var(--primary)/0.1),transparent_26%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card)/0.55)_100%)]" />
       </div>
 
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] lg:items-center lg:gap-10">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] lg:items-center lg:gap-10">
           <div className="min-w-0">
-            <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary sm:text-sm">
+            <p className="mobile-eyebrow text-primary sm:text-sm">
               Studio Note
             </p>
 
-            <h2 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-[1.02] text-foreground sm:text-4xl md:text-5xl lg:text-6xl">
+            <h2 className="mobile-section-title mt-4 max-w-3xl text-foreground lg:text-6xl">
               A studio built on contrast, atmosphere, and repeat looking.
             </h2>
 
-            <div className="mt-6 max-w-2xl space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <div className="mobile-body-copy mt-5 max-w-2xl space-y-4 text-muted-foreground">
               <p>
                 Paper Slayer leans into bold contrast, dense texture, and the
                 cinematic pull of light moving through dark surfaces. The goal
@@ -80,7 +68,7 @@ export function AboutSection({
               </p>
             </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
               <Button
                 variant="gold"
                 size="lg"
@@ -114,10 +102,10 @@ export function AboutSection({
                     className="aspect-[4/5] w-full object-cover object-top"
                   />
                 </div>
-                <p className="mt-4 font-display text-[11px] uppercase tracking-[0.3em] text-primary">
+                <p className="mobile-label mt-4 text-primary">
                   Studio Portrait
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                <p className="mobile-card-copy mt-2 text-muted-foreground">
                   Kept visually calm so the section still reads as story first,
                   portrait second.
                 </p>
@@ -125,49 +113,31 @@ export function AboutSection({
             </div>
           </div>
         </div>
-
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-          {studioStats.map((stat) => (
-            <div
-              key={stat.label}
-              className="overflow-hidden border border-border/50 bg-background/70 p-5 backdrop-blur-sm"
-            >
-              <p className="font-display text-3xl font-bold text-foreground">
-                {stat.value}
-              </p>
-              <p className="mt-2 text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className="app-surface p-6 sm:p-8">
-            <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="app-surface p-5 sm:p-8">
+            <p className="mobile-eyebrow text-primary">
               Working Principle
             </p>
-            <blockquote className="mt-6 font-display text-2xl leading-tight text-foreground sm:text-3xl md:text-4xl">
+            <blockquote className="mobile-pull-quote mt-5 text-foreground">
               "The image should hit immediately, then linger longer than the
               first glance."
             </blockquote>
-            <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <p className="mobile-body-copy mt-5 max-w-xl text-muted-foreground">
               That balance between impact and staying power guides the
-              composition, the palette, and the pacing of the entire
-              collection.
+              composition, the palette, and the pacing of the entire collection.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
             {studioPrinciples.map((item) => (
               <div
                 key={item.title}
-                className="app-surface border-border/60 bg-background/45 p-5"
+                className="app-surface border-border/60 bg-background/45 p-4 sm:p-5"
               >
-                <p className="font-display text-sm uppercase tracking-[0.22em] text-foreground">
+                <p className="font-display text-sm uppercase tracking-[0.18em] text-foreground sm:tracking-[0.22em]">
                   {item.title}
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                <p className="mobile-card-copy mt-3 text-muted-foreground sm:text-sm">
                   {item.copy}
                 </p>
               </div>

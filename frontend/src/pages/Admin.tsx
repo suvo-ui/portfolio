@@ -19,7 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
-import { apiUrl, fetchWithTimeout } from "@/lib/api";
+import {
+  apiUrl,
+  fetchWithTimeout,
+  createHeroCarouselImage,
+  updateHeroCarouselImage,
+  deleteHeroCarouselImage,
+  type HeroCarouselImage,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface Category {
@@ -210,6 +217,7 @@ export default function Admin() {
   const [size, setSize] = useState("");
   const [availableForPrint, setAvailableForPrint] = useState(false);
   const [forSale, setForSale] = useState(false);
+  const [uploadType, setUploadType] = useState<"gallery" | "prints">("gallery");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -237,6 +245,11 @@ export default function Admin() {
   const [wsLoading, setWsLoading] = useState(false);
   const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
   const [contactLoading, setContactLoading] = useState(true);
+  const [heroImages, setHeroImages] = useState<HeroCarouselImage[]>([]);
+  const [heroLoading, setHeroLoading] = useState(false);
+  const [heroTitle, setHeroTitle] = useState("");
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -313,10 +326,29 @@ export default function Admin() {
       }
     };
 
+    const fetchHeroImages = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/admin/hero-carousel"), {
+          credentials: "include",
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load hero carousel images");
+        }
+
+        setHeroImages(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to load hero carousel images:", error);
+        setHeroImages([]);
+      }
+    };
+
     fetchCategories();
     fetchCourse();
     fetchDemoVideos();
     fetchContactRequests();
+    fetchHeroImages();
   }, []);
 
   useEffect(() => {
@@ -369,20 +401,35 @@ export default function Admin() {
         throw new Error("Upload completed without an image URL.");
       }
 
-      const createRes = await fetch(apiUrl("/api/admin/artworks"), {
+      const endpoint =
+        uploadType === "gallery" ? "/api/admin/artworks" : "/api/admin/prints";
+      const payload =
+        uploadType === "gallery"
+          ? {
+              title: artTitle,
+              description: artDescription,
+              category_id: Number(categoryId),
+              image_url: uploadData.url,
+              price_inr: forSale ? Number(price) : null,
+              size,
+              available_for_print: availableForPrint,
+              for_sale: forSale,
+            }
+          : {
+              title: artTitle,
+              description: artDescription,
+              category_id: Number(categoryId),
+              image_url: uploadData.url,
+              price_inr: forSale ? Number(price) : null,
+              size,
+              for_sale: forSale,
+            };
+
+      const createRes = await fetch(apiUrl(endpoint), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          title: artTitle,
-          description: artDescription,
-          category_id: Number(categoryId),
-          image_url: uploadData.url,
-          price_inr: forSale ? Number(price) : null,
-          size,
-          available_for_print: availableForPrint,
-          for_sale: forSale,
-        }),
+        body: JSON.stringify(payload),
       });
       const createData = await createRes.json().catch(() => null);
 
@@ -397,12 +444,19 @@ export default function Admin() {
       setSize("");
       setAvailableForPrint(false);
       setForSale(false);
+      setUploadType("gallery");
       setFile(null);
       setPreview(null);
-      alert("Artwork uploaded successfully.");
+      alert(
+        `${uploadType === "gallery" ? "Artwork" : "Print"} uploaded successfully.`,
+      );
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Artwork upload failed.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : `${uploadType === "gallery" ? "Artwork" : "Print"} upload failed.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -571,6 +625,91 @@ export default function Admin() {
       alert(err instanceof Error ? err.message : "Workshop creation failed.");
     } finally {
       setWsLoading(false);
+    }
+  };
+
+  const handleCreateHeroImage = async () => {
+    if (!file || !artTitle) return;
+    setHeroLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const uploadRes = await fetchWithTimeout(
+        apiUrl("/api/upload"),
+        {
+          method: "POST",
+          credentials: "include",
+          body: fd,
+        },
+        30000,
+      );
+      const uploadData = await uploadRes.json().catch(() => null);
+
+      if (!uploadRes.ok) {
+        throw new Error(uploadData?.error || "Image upload failed");
+      }
+
+      if (!uploadData?.url) {
+        throw new Error("Upload completed without an image URL.");
+      }
+
+      const created = await createHeroCarouselImage({
+        image_url: uploadData.url,
+        title: artTitle,
+        active: true,
+      });
+
+      setHeroImages((prev) => [...prev, created]);
+      setArtTitle("");
+      setFile(null);
+      setPreview(null);
+      alert("Hero carousel image added successfully.");
+    } catch (err) {
+      console.error(err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Hero carousel image creation failed.",
+      );
+    } finally {
+      setHeroLoading(false);
+    }
+  };
+
+  const handleUpdateHeroImage = async (
+    id: number,
+    updates: Partial<HeroCarouselImage>,
+  ) => {
+    try {
+      const updated = await updateHeroCarouselImage(id, updates);
+      setHeroImages((prev) =>
+        prev.map((img) => (img.id === id ? updated : img)),
+      );
+      alert("Hero carousel image updated successfully.");
+    } catch (err) {
+      console.error(err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Hero carousel image update failed.",
+      );
+    }
+  };
+
+  const handleDeleteHeroImage = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this hero carousel image?"))
+      return;
+    try {
+      await deleteHeroCarouselImage(id);
+      setHeroImages((prev) => prev.filter((img) => img.id !== id));
+      alert("Hero carousel image deleted successfully.");
+    } catch (err) {
+      console.error(err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Hero carousel image deletion failed.",
+      );
     }
   };
 
@@ -811,11 +950,41 @@ export default function Admin() {
               >
                 <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="p-6 lg:p-8">
+                    <div className="flex gap-2 mb-6">
+                      <Button
+                        variant={
+                          uploadType === "gallery" ? "default" : "outline"
+                        }
+                        onClick={() => setUploadType("gallery")}
+                      >
+                        Gallery Upload
+                      </Button>
+                      <Button
+                        variant={
+                          uploadType === "prints" ? "default" : "outline"
+                        }
+                        onClick={() => setUploadType("prints")}
+                      >
+                        Prints Upload
+                      </Button>
+                    </div>
                     <PanelHeader
                       icon={<Palette className="h-4 w-4" />}
-                      eyebrow="Artwork Publishing"
-                      title="Stage the next piece with impact."
-                      description="Create the listing, choose the category, and preview the image before publishing."
+                      eyebrow={
+                        uploadType === "gallery"
+                          ? "Gallery Publishing"
+                          : "Prints Publishing"
+                      }
+                      title={
+                        uploadType === "gallery"
+                          ? "Stage the next piece with impact."
+                          : "Stage the next print with impact."
+                      }
+                      description={
+                        uploadType === "gallery"
+                          ? "Create the listing, choose the category, and preview the image before publishing."
+                          : "Create the print listing, choose the category, and preview the image before publishing."
+                      }
                     />
 
                     <div className={fieldGridClassName}>
@@ -886,30 +1055,32 @@ export default function Admin() {
                       </FieldShell>
                     </div>
 
-                    <div className="mt-5">
-                      <FieldShell
-                        label="Available for Print"
-                        hint="Make this artwork available in the print section"
-                      >
-                        <div className="flex items-center gap-3 border border-white/12 bg-zinc-950/95 px-4 py-3 rounded-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                          <input
-                            type="checkbox"
-                            id="availableForPrint"
-                            checked={availableForPrint}
-                            onChange={(e) =>
-                              setAvailableForPrint(e.target.checked)
-                            }
-                            className="h-5 w-5 accent-primary cursor-pointer"
-                          />
-                          <label
-                            htmlFor="availableForPrint"
-                            className="cursor-pointer text-sm text-white flex-1"
-                          >
-                            Enable print availability
-                          </label>
-                        </div>
-                      </FieldShell>
-                    </div>
+                    {uploadType === "gallery" && (
+                      <div className="mt-5">
+                        <FieldShell
+                          label="Available for Print"
+                          hint="Make this artwork available in the print section"
+                        >
+                          <div className="flex items-center gap-3 border border-white/12 bg-zinc-950/95 px-4 py-3 rounded-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                            <input
+                              type="checkbox"
+                              id="availableForPrint"
+                              checked={availableForPrint}
+                              onChange={(e) =>
+                                setAvailableForPrint(e.target.checked)
+                              }
+                              className="h-5 w-5 accent-primary cursor-pointer"
+                            />
+                            <label
+                              htmlFor="availableForPrint"
+                              className="cursor-pointer text-sm text-white flex-1"
+                            >
+                              Enable print availability
+                            </label>
+                          </div>
+                        </FieldShell>
+                      </div>
+                    )}
 
                     <div className="mt-5">
                       <FieldShell
@@ -933,7 +1104,9 @@ export default function Admin() {
                         disabled={loading}
                         className="w-full shadow-[0_18px_50px_hsl(var(--primary)/0.22)] sm:w-auto"
                       >
-                        {loading ? "Publishing..." : "Publish Artwork"}
+                        {loading
+                          ? "Publishing..."
+                          : `Publish ${uploadType === "gallery" ? "Artwork" : "Print"}`}
                       </Button>
                       <p className="text-sm text-muted-foreground">
                         {hasArtworkDraft
@@ -1394,6 +1567,180 @@ export default function Admin() {
                   </div>
                 </motion.section>
               </div>
+
+              <motion.section
+                variants={itemVariants}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.25 }}
+                className={panelClassName}
+              >
+                <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="p-6 lg:p-8">
+                    <PanelHeader
+                      icon={<Layers3 className="h-4 w-4" />}
+                      eyebrow="Hero Carousel"
+                      title="Manage homepage carousel images."
+                      description="Upload and organize images that will auto-rotate on the hero section of the homepage."
+                    />
+
+                    <div className={fieldGridClassName}>
+                      <FieldShell label="Image Title">
+                        <Input
+                          value={artTitle}
+                          onChange={(e) => setArtTitle(e.target.value)}
+                          placeholder="Title the image"
+                          className={controlClassName}
+                        />
+                      </FieldShell>
+                    </div>
+
+                    <div className="mt-8 flex flex-wrap items-center gap-4">
+                      <Button
+                        variant="gold"
+                        size="xl"
+                        onClick={handleCreateHeroImage}
+                        disabled={heroLoading}
+                        className="w-full shadow-[0_18px_50px_hsl(var(--primary)/0.22)] sm:w-auto"
+                      >
+                        {heroLoading ? "Adding..." : "Add to Carousel"}
+                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        {file && artTitle
+                          ? "Ready to add to carousel."
+                          : "Upload image and add title to proceed."}
+                      </p>
+                    </div>
+
+                    {heroImages.length > 0 && (
+                      <div className="mt-8">
+                        <h4 className="font-display text-lg font-bold text-foreground mb-4">
+                          Current Carousel Images
+                        </h4>
+                        <div className="space-y-4">
+                          {heroImages.map((image) => (
+                            <div
+                              key={image.id}
+                              className="border border-white/10 bg-black/20 p-4 rounded-lg"
+                            >
+                              <div className="flex items-start gap-4">
+                                <img
+                                  src={image.image_url}
+                                  alt={image.title}
+                                  className="h-16 w-16 object-cover rounded"
+                                />
+                                <div className="flex-1">
+                                  <h5 className="font-display text-sm font-bold text-foreground">
+                                    {image.title}
+                                  </h5>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newTitle = prompt(
+                                          "New title:",
+                                          image.title,
+                                        );
+                                        if (newTitle !== null) {
+                                          handleUpdateHeroImage(image.id, {
+                                            title: newTitle,
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDeleteHeroImage(image.id)
+                                      }
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-white/10 p-6 lg:p-8 xl:border-l xl:border-t-0">
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                          Image Upload
+                        </p>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          Select an image to add to the hero carousel.
+                        </p>
+                      </div>
+                      <UploadCloud className="h-5 w-5 text-primary" />
+                    </div>
+
+                    <div
+                      {...getRootProps()}
+                      className={cn(
+                        "relative flex min-h-[200px] cursor-pointer items-center justify-center overflow-hidden border border-dashed border-white/15 bg-black/20 transition-colors",
+                        isDragActive && "border-primary/60 bg-primary/10",
+                      )}
+                    >
+                      <input {...getInputProps()} />
+                      <AnimatePresence mode="wait">
+                        {preview ? (
+                          <motion.div
+                            key="preview"
+                            initial={{ opacity: 0, scale: 0.96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ duration: 0.35 }}
+                            className="absolute inset-0"
+                          >
+                            <img
+                              src={preview}
+                              alt="Preview"
+                              className="h-full w-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_45%,rgba(0,0,0,0.8)_100%)]" />
+                            <div className="absolute bottom-0 left-0 right-0 p-5">
+                              <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                                Preview Ready
+                              </p>
+                              <p className="mt-2 font-display text-lg font-bold text-white">
+                                {artTitle || file?.name || "Image ready"}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="empty"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex max-w-xs flex-col items-center text-center"
+                          >
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary">
+                              <UploadCloud className="h-6 w-6" />
+                            </div>
+                            <p className="mt-4 font-display text-lg uppercase tracking-[0.18em] text-foreground">
+                              Upload image
+                            </p>
+                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                              Drag and drop or click to select an image for the
+                              carousel.
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
             </div>
             <motion.aside
               variants={itemVariants}

@@ -17,16 +17,16 @@ const NotFound = () => {
 
   return (
     <Layout>
-      <div className="flex min-h-screen items-center justify-center pt-20">
+      <div className="flex min-h-screen items-center justify-center px-4 pt-20">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-md text-center">
-            <p className="mb-4 font-display text-7xl font-bold text-primary/20 sm:text-8xl md:text-9xl">
+            <p className="mb-4 font-display text-5xl font-bold text-primary/20 sm:text-8xl md:text-9xl">
               404
             </p>
-            <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+            <h1 className="mobile-section-title text-foreground sm:text-4xl">
               Page Not Found
             </h1>
-            <p className="mt-4 text-muted-foreground">
+            <p className="mobile-body-copy mt-4 text-muted-foreground">
               The page you&apos;re looking for doesn&apos;t exist or has been moved.
             </p>
             <Button variant="gold" asChild size="lg" className="mt-8">

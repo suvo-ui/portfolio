@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { AboutSection } from "@/components/AboutSection";
 import { GallerySection } from "@/components/GallerySection";
 import { HeroSection } from "@/components/HeroSection";
 import { Layout } from "@/components/Layout";
+import { PrintsSection } from "@/components/PrintsSection";
 import ArtworkModal from "@/components/ArtworkModal";
 import type { Artwork } from "@/components/ArtworkCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { useTabSelection } from "@/context/TabSelectionContext";
 import { apiUrl } from "@/lib/api";
+import type { Print } from "@/types/print";
 
 interface CuratedSection {
   id: string;
@@ -43,6 +47,16 @@ const categoryDetails: Record<
     description:
       "High-impact works with the strongest visual pull and a more elevated collector presence.",
   },
+  "Best Works": {
+    eyebrow: "Studio Favorites",
+    description:
+      "A refined selection of the strongest works, chosen for their visual authority and collector appeal.",
+  },
+  "Recently Sold": {
+    eyebrow: "Fresh Moves",
+    description:
+      "The most recent collector acquisitions, showcasing the works that just left the studio.",
+  },
 };
 
 const sortByNewest = (items: Artwork[]) =>
@@ -62,14 +76,14 @@ const EmptyCollectionState = ({
 }) => (
   <section className="py-8 sm:py-10 lg:py-12">
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="rounded-[1.75rem] border border-border/60 bg-card/55 p-8 text-center backdrop-blur-sm sm:p-10">
-        <p className="font-display text-[11px] uppercase tracking-[0.34em] text-primary">
+      <div className="rounded-[1.75rem] border border-border/60 bg-card/55 p-6 text-center backdrop-blur-sm sm:p-10">
+        <p className="mobile-eyebrow text-primary">
           {eyebrow}
         </p>
-        <h3 className="mt-4 font-display text-2xl text-foreground sm:text-3xl">
+        <h3 className="mobile-section-title mt-4 text-foreground">
           {title}
         </h3>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+        <p className="mobile-body-copy mx-auto mt-4 max-w-2xl text-muted-foreground">
           {description}
         </p>
       </div>
@@ -78,22 +92,66 @@ const EmptyCollectionState = ({
 );
 
 const Index = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { selectedTab, setSelectedTab } = useTabSelection();
   const [artworks, setArtworks] = useState<Artwork[]>([]);
-  const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
+  const [prints, setPrints] = useState<Print[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Artwork | Print | null>(
+    null,
+  );
+  const [selectedItemType, setSelectedItemType] = useState<
+    "artwork" | "print" | null
+  >(null);
 
   useEffect(() => {
-    const loadArtworks = async () => {
+    const state = location.state as
+      | { tab?: "gallery" | "print"; scrollTo?: string }
+      | undefined;
+
+    if (state?.tab) {
+      setSelectedTab(state.tab);
+    }
+
+    if (state?.scrollTo) {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(state.scrollTo!);
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+      navigate(location.pathname, { replace: true, state: undefined });
+    }
+  }, [location.state, location.pathname, navigate, setSelectedTab]);
+
+  useEffect(() => {
+    const loadCollectionData = async () => {
       try {
-        const response = await fetch(apiUrl("/api/artworks"));
-        const data = await response.json();
-        setArtworks(data);
+        const [artworksResponse, printsResponse] = await Promise.all([
+          fetch(apiUrl("/api/artworks")),
+          fetch(apiUrl("/api/prints")),
+        ]);
+
+        const artworksData = await artworksResponse.json().catch(() => []);
+        const printsData = await printsResponse.json().catch(() => []);
+
+        if (!artworksResponse.ok) {
+          throw new Error("Failed to load artworks");
+        }
+
+        if (!printsResponse.ok) {
+          throw new Error("Failed to load prints");
+        }
+
+        setArtworks(Array.isArray(artworksData) ? artworksData : []);
+        setPrints(Array.isArray(printsData) ? printsData : []);
       } catch (error) {
-        console.error("Failed to load artworks:", error);
+        console.error("Failed to load collection data:", error);
       }
     };
 
-    loadArtworks();
+    loadCollectionData();
   }, []);
 
   const handleDeleteArtwork = async (id: number) => {
@@ -121,10 +179,30 @@ const Index = () => {
   const handleSaveArtwork = (updatedArtwork: Artwork) => {
     setArtworks((prev) =>
       prev.map((artwork) =>
-        artwork.id === updatedArtwork.id ? updatedArtwork : artwork,
+        artwork.id === updatedArtwork.id
+          ? {
+              ...artwork,
+              ...updatedArtwork,
+              category: updatedArtwork.category ?? artwork.category,
+            }
+          : artwork,
       ),
     );
-    setSelectedArtwork(updatedArtwork);
+    setSelectedItem((prev) =>
+      prev && prev.id === updatedArtwork.id
+        ? { ...prev, ...updatedArtwork }
+        : prev,
+    );
+  };
+
+  const handleOpenArtwork = (artwork: Artwork) => {
+    setSelectedItemType("artwork");
+    setSelectedItem(artwork);
+  };
+
+  const handleOpenPrint = (print: Print) => {
+    setSelectedItemType("print");
+    setSelectedItem(print);
   };
 
   const artworksByCategory = artworks.reduce(
@@ -156,41 +234,7 @@ const Index = () => {
       };
     })
     .filter((section) => section.artworks.length > 0);
-
   const availableArtworks = artworks.filter((art) => !art.is_sold);
-  const printArtworks = artworks.filter((art) => art.available_for_print);
-
-  const printArtworksByCategory = printArtworks.reduce(
-    (acc, artwork) => {
-      const category = artwork.category || "Uncategorized";
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(artwork);
-      return acc;
-    },
-    {} as Record<string, Artwork[]>,
-  );
-
-  const printCuratedSections: CuratedSection[] = Object.entries(
-    printArtworksByCategory,
-  )
-    .filter(([categoryName]) => categoryDetails[categoryName])
-    .map(([categoryName, categoryArtworks]) => {
-      const details = categoryDetails[categoryName];
-      return {
-        id: `print-${categoryName.toLowerCase().replace(/\s+/g, "-")}`,
-        eyebrow: details.eyebrow,
-        name: categoryName,
-        description: details.description,
-        artworks:
-          categoryName === "Fresh Arrivals"
-            ? sortByNewest(categoryArtworks)
-            : sortByPrice(categoryArtworks),
-        initialCount: 4,
-      };
-    })
-    .filter((section) => section.artworks.length > 0);
 
   const collectionSignals = [
     {
@@ -216,12 +260,11 @@ const Index = () => {
         totalWorks={artworks.length}
         availableWorks={availableArtworks.length}
         curatedShelfCount={curatedSections.length}
-        artworks={artworks}
       />
 
       <div
         id="gallery"
-        className="relative overflow-hidden bg-background pb-10 sm:pb-14"
+        className="relative overflow-hidden bg-background pb-8 sm:pb-14"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.08),transparent_30%)]" />
 
@@ -230,21 +273,21 @@ const Index = () => {
             <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           </div>
 
-          <section className="py-12 sm:py-16 lg:py-20">
+          <section className="py-8 sm:py-16 lg:py-20">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
                 {collectionSignals.map((signal) => (
                   <div
                     key={signal.label}
-                    className="app-surface border-border/60 bg-card/50 p-5"
+                    className="app-surface border-border/60 bg-card/50 p-4 sm:p-5"
                   >
-                    <p className="font-display text-4xl font-bold text-foreground">
+                    <p className="font-display text-3xl font-bold text-foreground sm:text-4xl">
                       {signal.value}
                     </p>
-                    <p className="mt-3 font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+                    <p className="mobile-eyebrow mt-3 text-primary">
                       {signal.label}
                     </p>
-                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mobile-card-copy mt-4 text-muted-foreground sm:text-sm">
                       {signal.copy}
                     </p>
                   </div>
@@ -253,41 +296,30 @@ const Index = () => {
             </div>
           </section>
 
-          <Tabs defaultValue="gallery" className="w-full">
+          <Tabs
+            value={selectedTab}
+            onValueChange={(value) =>
+              setSelectedTab(value as "gallery" | "print")
+            }
+            className="w-full"
+          >
             <section className="pb-4 pt-2 sm:pt-4">
-              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="app-surface relative p-5 sm:p-6 lg:p-8">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.08),transparent_30%)]" />
-
-                  <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                    <div className="min-w-0">
-                      <p className="font-display text-[11px] uppercase tracking-[0.35em] text-primary">
-                        Curated Collection
-                      </p>
-                      <h2 className="mt-4 font-display text-3xl font-bold leading-[1.02] text-foreground sm:text-4xl md:text-5xl">
-                        A cleaner first page, arranged like a series of shelves.
-                      </h2>
-                      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                        Switch between originals and print-ready pieces without
-                        the homepage losing its rhythm or visual balance.
-                      </p>
-                    </div>
-
-                    <TabsList className="grid h-auto w-full grid-cols-2 border border-white/10 bg-black/30 p-1 sm:max-w-md">
-                      <TabsTrigger
-                        value="gallery"
-                        className="min-h-10 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
-                      >
-                        Gallery
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="print"
-                        className="min-h-10 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
-                      >
-                        Print
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+              <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
+                <div className="app-surface relative p-3 sm:p-5">
+                  <TabsList className="grid h-auto w-full grid-cols-2 rounded-full border border-white/10 bg-black/30 p-1">
+                    <TabsTrigger
+                      value="gallery"
+                      className="min-h-10 rounded-full data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                    >
+                      Gallery
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="print"
+                      className="min-h-10 rounded-full data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                    >
+                      Print
+                    </TabsTrigger>
+                  </TabsList>
                 </div>
               </div>
             </section>
@@ -307,8 +339,8 @@ const Index = () => {
                     isAdmin={isAdmin}
                     sectionIndex={index}
                     onDeleteArtwork={handleDeleteArtwork}
-                    onOpenArtwork={(art) => setSelectedArtwork(art)}
-                    onEditArtwork={(art) => setSelectedArtwork(art)}
+                    onOpenArtwork={handleOpenArtwork}
+                    onEditArtwork={handleOpenArtwork}
                   />
                 ))
               ) : (
@@ -320,30 +352,18 @@ const Index = () => {
               )}
             </TabsContent>
 
-            <TabsContent value="print" className="w-full">
-              {printCuratedSections.length > 0 ? (
-                printCuratedSections.map((section, index) => (
-                  <GallerySection
-                    key={section.id}
-                    category={{
-                      name: section.name,
-                      artworks: section.artworks,
-                      eyebrow: section.eyebrow,
-                      description: section.description,
-                    }}
-                    initialCount={section.initialCount}
-                    isAdmin={isAdmin}
-                    sectionIndex={index}
-                    onDeleteArtwork={handleDeleteArtwork}
-                    onOpenArtwork={(art) => setSelectedArtwork(art)}
-                    onEditArtwork={(art) => setSelectedArtwork(art)}
-                  />
-                ))
+            <TabsContent id="prints" value="print" className="w-full">
+              {prints.length > 0 ? (
+                <PrintsSection
+                  prints={prints}
+                  isAdmin={false}
+                  onOpenPrint={handleOpenPrint}
+                />
               ) : (
                 <EmptyCollectionState
                   eyebrow="Print Collection"
                   title="No prints available yet."
-                  description="Check back soon for available print editions of the current artworks."
+                  description="Check back soon for newly uploaded print editions from the studio."
                 />
               )}
             </TabsContent>
@@ -362,9 +382,12 @@ const Index = () => {
       />
 
       <ArtworkModal
-        artwork={selectedArtwork}
-        isAdmin={isAdmin}
-        onClose={() => setSelectedArtwork(null)}
+        artwork={selectedItem}
+        isAdmin={selectedItemType === "artwork" ? isAdmin : false}
+        onClose={() => {
+          setSelectedItem(null);
+          setSelectedItemType(null);
+        }}
         onSave={handleSaveArtwork}
       />
     </Layout>

@@ -112,7 +112,7 @@ router.put(
             newVideoPath,
             req.file.buffer,
             {
-              contentType: req.file.mimetype,
+              contentType: detectedType.contentType,
               upsert: false,
             },
           ),

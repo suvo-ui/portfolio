@@ -105,7 +105,7 @@ async function uploadWorkshopAsset(file, kind) {
 
   const { error } = await withTimeout(
     supabase.storage.from(bucketName).upload(objectPath, file.buffer, {
-      contentType: file.mimetype,
+      contentType: detectedType.contentType,
       upsert: false,
     }),
     SUPABASE_UPLOAD_TIMEOUT_MS,

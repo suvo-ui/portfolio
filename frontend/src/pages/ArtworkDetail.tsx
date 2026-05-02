@@ -95,13 +95,13 @@ const ArtworkDetail = () => {
         <div className="min-h-screen bg-background pt-20">
           <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
             <div className="border border-border/60 bg-card/55 p-8 text-center backdrop-blur-sm">
-              <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+              <p className="mobile-eyebrow text-primary">
                 Artwork Detail
               </p>
-              <h1 className="mt-4 font-display text-3xl text-foreground">
+              <h1 className="mobile-section-title mt-4 text-foreground">
                 Loading artwork.
               </h1>
-              <p className="mt-4 text-sm text-muted-foreground">
+              <p className="mobile-body-copy mt-4 text-muted-foreground">
                 Pulling the latest piece details from the live collection.
               </p>
             </div>
@@ -117,13 +117,13 @@ const ArtworkDetail = () => {
         <div className="min-h-screen bg-background pt-20">
           <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
             <div className="border border-border/60 bg-card/55 p-8 text-center backdrop-blur-sm">
-              <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+              <p className="mobile-eyebrow text-primary">
                 Collection Update
               </p>
-              <h1 className="mt-4 font-display text-3xl text-foreground">
+              <h1 className="mobile-section-title mt-4 text-foreground">
                 Artwork not available.
               </h1>
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              <p className="mobile-body-copy mx-auto mt-4 max-w-2xl text-muted-foreground">
                 {error || "This piece is no longer available in the live collection."}
               </p>
               <div className="mt-6">
@@ -141,7 +141,7 @@ const ArtworkDetail = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-background pt-20">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
           <Button variant="ghost" asChild className="mb-6 -ml-3 sm:mb-8">
             <Link to="/" className="group">
               <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
@@ -164,44 +164,44 @@ const ArtworkDetail = () => {
             </div>
 
             <div className="flex flex-col justify-center">
-              <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
+              <p className="mobile-eyebrow text-primary">
                 {artwork.category || "Studio Artwork"}
               </p>
 
-              <h1 className="mt-4 font-display text-4xl font-bold leading-[0.98] text-foreground sm:text-5xl md:text-6xl">
+              <h1 className="mobile-page-title mt-4 text-foreground md:text-6xl">
                 {artwork.title}
               </h1>
 
-              <p className="mt-5 text-base leading-relaxed text-muted-foreground md:text-lg">
+              <p className="mobile-intro-copy mt-5 text-muted-foreground">
                 {artwork.description ||
                   "This piece is part of the live collection and is available for direct inquiry."}
               </p>
 
-              <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 {artwork.for_sale && (
-                  <div className="border border-border/60 bg-card/45 p-5">
-                    <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                  <div className="border border-border/60 bg-card/45 p-4 sm:p-5">
+                    <p className="mobile-label text-primary">
                       Price
                     </p>
                     <p className="mt-3 text-lg text-foreground">{priceLabel}</p>
                   </div>
                 )}
-                <div className="border border-border/60 bg-card/45 p-5">
-                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                <div className="border border-border/60 bg-card/45 p-4 sm:p-5">
+                  <p className="mobile-label text-primary">
                     Size
                   </p>
                   <p className="mt-3 text-lg text-foreground">
                     {artwork.size || "Available on request"}
                   </p>
                 </div>
-                <div className="border border-border/60 bg-card/45 p-5">
-                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                <div className="border border-border/60 bg-card/45 p-4 sm:p-5">
+                  <p className="mobile-label text-primary">
                     Release Year
                   </p>
                   <p className="mt-3 text-lg text-foreground">{createdYear}</p>
                 </div>
-                <div className="border border-border/60 bg-card/45 p-5">
-                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-primary">
+                <div className="border border-border/60 bg-card/45 p-4 sm:p-5">
+                  <p className="mobile-label text-primary">
                     Inquiry
                   </p>
                   <p className="mt-3 text-lg text-foreground">
