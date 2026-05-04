@@ -31,10 +31,11 @@ export function getJwtSecret() {
 }
 
 export function getAuthCookieOptions(req) {
+  const isProduction = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
     secure: resolveSecureCookie(req),
-    sameSite: "strict",
+    sameSite: isProduction ? "none" : "lax", // ✅ allows cross-domain in prod
     path: "/",
     maxAge: AUTH_COOKIE_MAX_AGE_MS,
   };

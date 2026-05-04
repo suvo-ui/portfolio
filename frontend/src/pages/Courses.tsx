@@ -412,7 +412,8 @@ export default function Courses() {
   };
 
   const toggleFullscreen = () => {
-    const container = videoContainerRef.current as LegacyFullscreenElement | null;
+    const container =
+      videoContainerRef.current as LegacyFullscreenElement | null;
     const legacyDocument = document as LegacyFullscreenDocument;
     if (!container) return;
 
@@ -420,10 +421,8 @@ export default function Courses() {
       if (container.requestFullscreen) container.requestFullscreen();
       else if (container.webkitRequestFullscreen)
         container.webkitRequestFullscreen();
-      else if (container.mozRequestFullScreen)
-        container.mozRequestFullScreen();
-      else if (container.msRequestFullscreen)
-        container.msRequestFullscreen();
+      else if (container.mozRequestFullScreen) container.mozRequestFullScreen();
+      else if (container.msRequestFullscreen) container.msRequestFullscreen();
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
       else if (legacyDocument.webkitExitFullscreen)
@@ -438,13 +437,10 @@ export default function Courses() {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this workshop?")) return;
 
-    const response = await fetch(
-      apiUrl(`/api/workshops/${id}`),
-      {
-        method: "DELETE",
-        credentials: "include",
-      },
-    );
+    const response = await fetch(apiUrl(`/api/workshops/${id}`), {
+      method: "DELETE",
+      credentials: "include",
+    });
 
     const data = await response.json().catch(() => null);
 
@@ -465,17 +461,14 @@ export default function Courses() {
 
     if (!confirm(`Mark this workshop as ${action}?`)) return;
 
-    const response = await fetch(
-      apiUrl(`/api/workshops/${id}`),
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ completed: newCompleted }),
+    const response = await fetch(apiUrl(`/api/workshops/${id}`), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      credentials: "include",
+      body: JSON.stringify({ completed: newCompleted }),
+    });
 
     const data = await response.json().catch(() => null);
 
@@ -512,9 +505,7 @@ export default function Courses() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_14%,hsl(var(--primary)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)]" />
           <div className="relative flex min-h-[70vh] items-center justify-center px-6">
             <div className="border border-primary/18 bg-card/55 px-8 py-8 text-center shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl">
-              <p className="mobile-eyebrow text-primary">
-                Loading
-              </p>
+              <p className="mobile-eyebrow text-primary">Loading</p>
               <div className="mx-auto mt-5 h-12 w-12 rounded-full border border-primary/25 border-t-primary animate-spin" />
               <p className="mobile-body-copy mt-5 text-muted-foreground">
                 Preparing the learning experience.
@@ -533,9 +524,7 @@ export default function Courses() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,hsl(var(--primary)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)]" />
           <div className="relative flex min-h-[70vh] items-center justify-center px-6">
             <div className="max-w-xl border border-border/60 bg-card/55 p-8 text-center shadow-[0_24px_80px_hsl(0_0%_0%/0.32)] backdrop-blur-xl">
-              <p className="mobile-eyebrow text-primary">
-                Learning Page
-              </p>
+              <p className="mobile-eyebrow text-primary">Learning Page</p>
               <h1 className="mobile-section-title mt-5 text-foreground sm:text-4xl">
                 Course not available.
               </h1>
@@ -639,10 +628,7 @@ export default function Courses() {
           animate="show"
           className="relative"
         >
-          <section
-            id="courses"
-            className="py-8 sm:py-14 lg:py-16"
-          >
+          <section id="courses" className="py-8 sm:py-14 lg:py-16">
             <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.04fr)_minmax(320px,0.96fr)] xl:items-start xl:gap-10">
               <motion.div variants={fadeUp} className="max-w-4xl">
                 <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-md">
@@ -693,9 +679,7 @@ export default function Courses() {
                       variants={fadeUp}
                       className="app-surface border-border/60 bg-card/45 p-4 sm:p-5"
                     >
-                      <p className="mobile-label text-primary">
-                        {stat.label}
-                      </p>
+                      <p className="mobile-label text-primary">{stat.label}</p>
                       <p className="mt-2 font-display text-3xl font-bold text-foreground sm:mt-3 sm:text-4xl">
                         {stat.value}
                       </p>
@@ -714,9 +698,7 @@ export default function Courses() {
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
                   <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="mobile-eyebrow text-primary">
-                        Course Reel
-                      </p>
+                      <p className="mobile-eyebrow text-primary">Course Reel</p>
                       <h2 className="mt-3 font-display text-2xl font-bold text-foreground sm:text-3xl">
                         A page that feels like an opening scene.
                       </h2>
@@ -854,7 +836,9 @@ export default function Courses() {
                                 onClick={toggleFullscreen}
                                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white transition hover:bg-white/20"
                                 aria-label={
-                                  isFullscreen ? "Exit fullscreen" : "Fullscreen"
+                                  isFullscreen
+                                    ? "Exit fullscreen"
+                                    : "Fullscreen"
                                 }
                               >
                                 {isFullscreen ? (
@@ -892,17 +876,13 @@ export default function Courses() {
 
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <div className="border border-border/50 bg-background/40 p-4">
-                      <p className="mobile-label text-primary">
-                        Last Updated
-                      </p>
+                      <p className="mobile-label text-primary">Last Updated</p>
                       <p className="mt-3 text-sm leading-relaxed text-foreground">
                         {formatLongDate(course.updated_at)}
                       </p>
                     </div>
                     <div className="border border-border/50 bg-background/40 p-4">
-                      <p className="mobile-label text-primary">
-                        Next Workshop
-                      </p>
+                      <p className="mobile-label text-primary">Next Workshop</p>
                       <p className="mt-3 text-sm leading-relaxed text-foreground">
                         {nextWorkshop
                           ? formatShortDate(nextWorkshop.date)
@@ -925,100 +905,110 @@ export default function Courses() {
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:items-stretch">
                   <div className="flex flex-col lg:h-full">
                     <div>
-                    <p className="mobile-eyebrow text-primary">
-                      Course Architecture
-                    </p>
-                    <h2 className="mobile-section-title mt-4 max-w-md text-foreground">
-                      A premium syllabus experience
-                      <span className="block text-foreground/72">
-                        structured for clarity, progression, and studio-level
-                        polish.
-                      </span>
-                    </h2>
-                    <p className="mobile-body-copy mt-5 max-w-md text-muted-foreground">
-                      Explore each module with achievable milestones, hands-on
-                      lessons, and an organized learning path.
-                    </p>
+                      <p className="mobile-eyebrow text-primary">
+                        Course Architecture
+                      </p>
+                      <h2 className="mobile-section-title mt-4 max-w-md text-foreground">
+                        A premium syllabus experience
+                        <span className="block text-foreground/72">
+                          structured for clarity, progression, and studio-level
+                          polish.
+                        </span>
+                      </h2>
+                      <p className="mobile-body-copy mt-5 max-w-md text-muted-foreground">
+                        Explore each module with achievable milestones, hands-on
+                        lessons, and an organized learning path.
+                      </p>
                     </div>
 
                     {demoVideoWindows.length > 0 && (
-                      <div className="mt-6 flex min-h-0 flex-1 flex-col pt-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-display text-[10px] uppercase tracking-[0.32em] text-primary">
-                          Demo Windows
-                        </p>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/50">
-                          Click to open on YouTube
-                        </p>
-                      </div>
+                      <div className="mt-6 flex flex-col pt-1">
+                        {/* HEADER */}
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-display text-[10px] uppercase tracking-[0.32em] text-primary">
+                            Demo Windows
+                          </p>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/50">
+                            Click to open on YouTube
+                          </p>
+                        </div>
 
-                      <div
-                        className="mt-3 grid grid-cols-1 gap-2.5 lg:min-h-0 lg:flex-1"
-                        style={{
-                          gridTemplateRows:
-                            demoVideoWindows.length > 0
-                              ? `repeat(${demoVideoWindows.length}, minmax(0, 1fr))`
-                              : undefined,
-                        }}
-                      >
-                        {demoVideoWindows.map((demo) => (
-                          <motion.div
-                            key={demo.label}
-                            variants={fadeUp}
-                            {...hoverLift}
-                            className={cn(
-                              "group h-full overflow-hidden rounded-[1.15rem] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.96),hsl(var(--background)/0.99))] shadow-[0_18px_44px_hsl(0_0%_0%/0.2)]",
-                            )}
-                          >
-                            <a
-                              href={demo.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="grid h-full grid-rows-[auto_minmax(0,1fr)]"
+                        {/* GRID */}
+                        <div
+                          className={cn(
+                            "mt-3 grid gap-3",
+                            "grid-cols-1",
+                            demoVideoWindows.length >= 2 && "sm:grid-cols-2",
+                          )}
+                        >
+                          {demoVideoWindows.map((demo) => (
+                            <motion.div
+                              key={demo.label}
+                              variants={fadeUp}
+                              {...hoverLift}
+                              className={cn(
+                                "group overflow-hidden rounded-[1.15rem] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.96),hsl(var(--background)/0.99))] shadow-[0_18px_44px_hsl(0_0%_0%/0.2)]",
+                                demoVideoWindows.length === 1 &&
+                                  "sm:col-span-2",
+                              )}
                             >
-                              <div className="flex items-center justify-between border-b border-border/50 bg-background/78 px-3 py-2">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="h-2 w-2 rounded-full bg-primary/85" />
-                                  <span className="h-2 w-2 rounded-full bg-amber-200/70" />
-                                  <span className="h-2 w-2 rounded-full bg-foreground/35" />
+                              <a
+                                href={demo.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="grid h-full grid-rows-[auto_minmax(0,1fr)]"
+                              >
+                                {/* HEADER BAR */}
+                                <div className="flex items-center justify-between border-b border-border/50 bg-background/78 px-3 py-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-primary/85" />
+                                    <span className="h-2 w-2 rounded-full bg-amber-200/70" />
+                                    <span className="h-2 w-2 rounded-full bg-foreground/35" />
+                                  </div>
+                                  <p className="font-display text-[9px] uppercase tracking-[0.24em] text-foreground/55">
+                                    {demo.label}
+                                  </p>
                                 </div>
-                                <p className="font-display text-[9px] uppercase tracking-[0.24em] text-foreground/55">
-                                  {demo.label}
-                                </p>
-                              </div>
 
-                              <div className="relative aspect-[16/6] min-h-[92px] overflow-hidden bg-black lg:h-full lg:min-h-0 lg:aspect-auto">
-                                {demo.thumbnail ? (
-                                  <img
-                                    src={demo.thumbnail}
-                                    alt={demo.label}
-                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.18),transparent_42%),linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)]" />
-                                )}
-                                <div className="absolute inset-0 bg-black/28 transition-colors duration-300 group-hover:bg-black/18" />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/45 text-white shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:scale-110">
-                                    <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
-                                  </span>
+                                {/* VIDEO */}
+                                <div className="relative aspect-video w-full min-h-[180px] sm:min-h-[200px] md:max-h-[220px] overflow-hidden bg-black">
+                                  {demo.thumbnail ? (
+                                    <img
+                                      src={demo.thumbnail}
+                                      alt={demo.label}
+                                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.18),transparent_42%),linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)]" />
+                                  )}
+
+                                  {/* OVERLAY */}
+                                  <div className="absolute inset-0 bg-black/28 transition-colors duration-300 group-hover:bg-black/18" />
+
+                                  {/* PLAY BUTTON */}
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/45 text-white shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:scale-110">
+                                      <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+                                    </span>
+                                  </div>
+
+                                  {/* EXTERNAL ICON */}
+                                  <div className="absolute bottom-2 right-2 rounded-full border border-white/20 bg-black/45 p-1.5 text-white/80 backdrop-blur-sm">
+                                    <ArrowUpRight className="h-3 w-3" />
+                                  </div>
                                 </div>
-                                <div className="absolute bottom-2 right-2 rounded-full border border-white/20 bg-black/45 p-1.5 text-white/80 backdrop-blur-sm">
-                                  <ArrowUpRight className="h-3 w-3" />
-                                </div>
-                              </div>
-                            </a>
-                          </motion.div>
-                        ))}
-                      </div>
+                              </a>
+                            </motion.div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <article className="rounded-xl border border-border/60 bg-background/70 p-4 text-center">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <article className="rounded-xl border border-border/60 bg-background/70 p-4 text-center">
                         <p className="text-xs uppercase tracking-widest text-muted-foreground">
                           Modules
                         </p>
@@ -1169,7 +1159,10 @@ export default function Courses() {
                 </div>
               </motion.div>
 
-              <motion.aside variants={fadeUp} className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+              <motion.aside
+                variants={fadeUp}
+                className="space-y-5 xl:sticky xl:top-24 xl:self-start"
+              >
                 <div className={cn(shellClassName, "p-5")}>
                   <p className="font-display text-[11px] uppercase tracking-[0.32em] text-primary">
                     Learning Pulse
@@ -1251,25 +1244,22 @@ export default function Courses() {
             </div>
           </section>
 
-          <section
-            id="workshops"
-            className="pb-20 sm:pb-24"
-          >
+          <section id="workshops" className="pb-20 sm:pb-24">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
               <motion.div
                 variants={fadeUp}
                 className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-end"
               >
                 <div>
-                  <p className="mobile-eyebrow text-primary">
-                    Live Workshops
-                  </p>
+                  <p className="mobile-eyebrow text-primary">Live Workshops</p>
                   <h2 className="mobile-section-title mt-4 max-w-3xl text-foreground">
-                    Workshops with cleaner layout, clearer details, and better spacing.
+                    Workshops with cleaner layout, clearer details, and better
+                    spacing.
                   </h2>
                 </div>
                 <p className="mobile-body-copy max-w-sm text-muted-foreground">
-                  Each session gets room to breathe without crowding the viewport.
+                  Each session gets room to breathe without crowding the
+                  viewport.
                 </p>
               </motion.div>
 
@@ -1284,9 +1274,7 @@ export default function Courses() {
                       Workshop Studio
                     </span>
                   </div>
-                  <p className="mobile-eyebrow text-primary">
-                    Workshop Update
-                  </p>
+                  <p className="mobile-eyebrow text-primary">Workshop Update</p>
                   <h3 className="mobile-section-title mt-4 text-foreground">
                     New sessions are being composed right now.
                   </h3>
@@ -1298,177 +1286,180 @@ export default function Courses() {
                 </motion.div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 2xl:grid-cols-3">
-                {liveWorkshops.map((workshop, index) => {
-                  const workshopDate = new Date(workshop.date);
-                  const now = new Date();
+                  {liveWorkshops.map((workshop, index) => {
+                    const workshopDate = new Date(workshop.date);
+                    const now = new Date();
 
-                  const isUpcoming = workshopDate > now && !workshop.completed;
-                  const isToday =
-                    workshopDate.toDateString() === now.toDateString() &&
-                    !workshop.completed;
-                  return (
-                    <motion.article
-                      key={workshop.id}
-                      variants={fadeUp}
-                      {...hoverLift}
-                      className={cn(
-                        shellClassName,
-                        "group relative flex h-full flex-col overflow-hidden",
-                        index === 0 &&
-                          liveWorkshops.length > 2 &&
-                          "sm:col-span-2 2xl:col-span-2",
-                      )}
-                    >
-                      {/* STATUS */}
-                      <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
-                        <div
-                          className={cn(
-                            "inline-flex items-center gap-2 border px-3 py-1.5 backdrop-blur-md",
-                            isToday
-                              ? "border-green-500/50 bg-green-500/14 text-green-300"
-                              : isUpcoming
-                                ? "border-blue-500/50 bg-blue-500/14 text-blue-300"
-                                : "border-orange-500/50 bg-orange-500/14 text-orange-300",
-                          )}
-                        >
-                          <span className="text-xs uppercase">
-                            {isToday
-                              ? "Live Today"
-                              : isUpcoming
-                                ? "Upcoming"
-                                : "Completed"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* IMAGE */}
-                      {workshop.image_url ? (
-                        <motion.img
-                          src={workshop.image_url}
-                          alt={workshop.title}
-                          className="w-full object-cover transition-transform duration-700 group-hover:scale-105 aspect-[4/3]"
-                          variants={scaleIn}
-                        />
-                      ) : (
-                        <div className="aspect-[4/3] flex items-center justify-center bg-zinc-800">
-                          <p>{workshop.title}</p>
-                        </div>
-                      )}
-
-                      {/* ADMIN BUTTONS */}
-                      {isAdmin && (
-                        <div className="absolute right-4 top-14 z-10 flex flex-wrap justify-end gap-2 sm:right-6 sm:top-6">
-                          <button
-                            onClick={() =>
-                              handleToggleComplete(
-                                workshop.id,
-                                workshop.completed || false,
-                              )
-                            }
+                    const isUpcoming =
+                      workshopDate > now && !workshop.completed;
+                    const isToday =
+                      workshopDate.toDateString() === now.toDateString() &&
+                      !workshop.completed;
+                    return (
+                      <motion.article
+                        key={workshop.id}
+                        variants={fadeUp}
+                        {...hoverLift}
+                        className={cn(
+                          shellClassName,
+                          "group relative flex h-full flex-col overflow-hidden",
+                          index === 0 &&
+                            liveWorkshops.length > 2 &&
+                            "sm:col-span-2 2xl:col-span-2",
+                        )}
+                      >
+                        {/* STATUS */}
+                        <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
+                          <div
                             className={cn(
-                              "min-h-10 rounded-md px-3 text-xs text-white",
-                              workshop.completed
-                                ? "bg-orange-500 hover:bg-orange-600"
-                                : "bg-green-500 hover:bg-green-600",
+                              "inline-flex items-center gap-2 border px-3 py-1.5 backdrop-blur-md",
+                              isToday
+                                ? "border-green-500/50 bg-green-500/14 text-green-300"
+                                : isUpcoming
+                                  ? "border-blue-500/50 bg-blue-500/14 text-blue-300"
+                                  : "border-orange-500/50 bg-orange-500/14 text-orange-300",
                             )}
                           >
-                            {workshop.completed
-                              ? "Mark Incomplete"
-                              : "Mark Complete"}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(workshop.id)}
-                            className="min-h-10 rounded-md bg-red-500 px-3 text-xs text-white hover:bg-red-600"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-
-                      {/* CONTENT */}
-                      <div className="flex flex-1 flex-col p-4 sm:p-6">
-                        <h3 className="mb-2 text-lg font-bold sm:text-xl">
-                          {workshop.title}
-                        </h3>
-
-                        <p className="mb-4 flex-1 text-sm leading-relaxed text-zinc-400">
-                          {workshop.description || "Coming soon"}
-                        </p>
-
-                        <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <div className="flex items-center gap-2 text-sm text-zinc-300">
-                            <CalendarClock className="h-4 w-4 shrink-0 text-primary" />
-                            <span>{formatShortDate(workshop.date)}</span>
-                          </div>
-                          {workshop.duration && (
-                            <div className="flex items-center gap-2 text-sm text-zinc-300">
-                              <Clock3 className="h-4 w-4 shrink-0 text-primary" />
-                              <span>{workshop.duration}</span>
-                            </div>
-                          )}
-                          {workshop.max_seats ? (
-                            <div className="flex items-center gap-2 text-sm text-zinc-300">
-                              <Users className="h-4 w-4 shrink-0 text-primary" />
-                              <span>{workshop.max_seats} seats</span>
-                            </div>
-                          ) : null}
-                          <div className="text-sm font-semibold text-foreground">
-                            {formatPrice(workshop.price)}
-                          </div>
-                        </div>
-
-                        {workshop.venue && (
-                          <button
-                            onClick={() => setSelectedVenue(workshop.venue)}
-                            className="mt-4 inline-flex min-h-10 items-center gap-2 text-left text-sm text-primary transition-colors hover:text-primary/80"
-                          >
-                            <MapPin className="h-4 w-4 shrink-0" />
-                            <span className="break-words">{workshop.venue}</span>
-                          </button>
-                        )}
-
-                        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Button asChild size="lg" className="w-full">
-                            <Link to="/contact">Reserve Seat</Link>
-                          </Button>
-                          <Button
-                            variant="hero"
-                            size="lg"
-                            asChild
-                            className="w-full border-primary/30 bg-background/12"
-                          >
-                            <Link to="/contact">Ask a Question</Link>
-                          </Button>
-                        </div>
-
-                        {workshop.venue && (
-                          <button
-                            onClick={() => setSelectedVenue(workshop.venue)}
-                            className="hidden"
-                          >
-                            📍 {workshop.venue}
-                          </button>
-                        )}
-
-                        <div className="hidden flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          {workshop.price && (
-                            <span className="font-bold">
-                              {formatPrice(workshop.price)}
+                            <span className="text-xs uppercase">
+                              {isToday
+                                ? "Live Today"
+                                : isUpcoming
+                                  ? "Upcoming"
+                                  : "Completed"}
                             </span>
+                          </div>
+                        </div>
+
+                        {/* IMAGE */}
+                        {workshop.image_url ? (
+                          <motion.img
+                            src={workshop.image_url}
+                            alt={workshop.title}
+                            className="w-full object-cover transition-transform duration-700 group-hover:scale-105 aspect-[4/3]"
+                            variants={scaleIn}
+                          />
+                        ) : (
+                          <div className="aspect-[4/3] flex items-center justify-center bg-zinc-800">
+                            <p>{workshop.title}</p>
+                          </div>
+                        )}
+
+                        {/* ADMIN BUTTONS */}
+                        {isAdmin && (
+                          <div className="absolute right-4 top-14 z-10 flex flex-wrap justify-end gap-2 sm:right-6 sm:top-6">
+                            <button
+                              onClick={() =>
+                                handleToggleComplete(
+                                  workshop.id,
+                                  workshop.completed || false,
+                                )
+                              }
+                              className={cn(
+                                "min-h-10 rounded-md px-3 text-xs text-white",
+                                workshop.completed
+                                  ? "bg-orange-500 hover:bg-orange-600"
+                                  : "bg-green-500 hover:bg-green-600",
+                              )}
+                            >
+                              {workshop.completed
+                                ? "Mark Incomplete"
+                                : "Mark Complete"}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(workshop.id)}
+                              className="min-h-10 rounded-md bg-red-500 px-3 text-xs text-white hover:bg-red-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+
+                        {/* CONTENT */}
+                        <div className="flex flex-1 flex-col p-4 sm:p-6">
+                          <h3 className="mb-2 text-lg font-bold sm:text-xl">
+                            {workshop.title}
+                          </h3>
+
+                          <p className="mb-4 flex-1 text-sm leading-relaxed text-zinc-400">
+                            {workshop.description || "Coming soon"}
+                          </p>
+
+                          <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div className="flex items-center gap-2 text-sm text-zinc-300">
+                              <CalendarClock className="h-4 w-4 shrink-0 text-primary" />
+                              <span>{formatShortDate(workshop.date)}</span>
+                            </div>
+                            {workshop.duration && (
+                              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                <Clock3 className="h-4 w-4 shrink-0 text-primary" />
+                                <span>{workshop.duration}</span>
+                              </div>
+                            )}
+                            {workshop.max_seats ? (
+                              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                                <Users className="h-4 w-4 shrink-0 text-primary" />
+                                <span>{workshop.max_seats} seats</span>
+                              </div>
+                            ) : null}
+                            <div className="text-sm font-semibold text-foreground">
+                              {formatPrice(workshop.price)}
+                            </div>
+                          </div>
+
+                          {workshop.venue && (
+                            <button
+                              onClick={() => setSelectedVenue(workshop.venue)}
+                              className="mt-4 inline-flex min-h-10 items-center gap-2 text-left text-sm text-primary transition-colors hover:text-primary/80"
+                            >
+                              <MapPin className="h-4 w-4 shrink-0" />
+                              <span className="break-words">
+                                {workshop.venue}
+                              </span>
+                            </button>
                           )}
 
-                          <div className="flex w-full gap-2 sm:w-auto">
-                            <div>
-                              <Button asChild className="w-full sm:w-auto">
-                                <Link to="/contact">Reserve →</Link>
-                              </Button>
+                          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <Button asChild size="lg" className="w-full">
+                              <Link to="/contact">Reserve Seat</Link>
+                            </Button>
+                            <Button
+                              variant="hero"
+                              size="lg"
+                              asChild
+                              className="w-full border-primary/30 bg-background/12"
+                            >
+                              <Link to="/contact">Ask a Question</Link>
+                            </Button>
+                          </div>
+
+                          {workshop.venue && (
+                            <button
+                              onClick={() => setSelectedVenue(workshop.venue)}
+                              className="hidden"
+                            >
+                              📍 {workshop.venue}
+                            </button>
+                          )}
+
+                          <div className="hidden flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            {workshop.price && (
+                              <span className="font-bold">
+                                {formatPrice(workshop.price)}
+                              </span>
+                            )}
+
+                            <div className="flex w-full gap-2 sm:w-auto">
+                              <div>
+                                <Button asChild className="w-full sm:w-auto">
+                                  <Link to="/contact">Reserve →</Link>
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.article>
-                  );
-                })}
+                      </motion.article>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1496,12 +1487,13 @@ export default function Courses() {
                     className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-transparent transition hover:bg-black/60"
                     aria-label="Close venue map"
                   >
-                    <X className="absolute h-5 w-5 text-white" />
-                    ✕
+                    <X className="absolute h-5 w-5 text-white" />✕
                   </button>
 
                   <div className="p-5 sm:p-6">
-                    <h3 className="mb-4 break-words text-lg font-bold">{selectedVenue}</h3>
+                    <h3 className="mb-4 break-words text-lg font-bold">
+                      {selectedVenue}
+                    </h3>
                     <div className="rounded-xl border border-border/60 bg-background/50 p-5">
                       <p className="text-sm leading-relaxed text-muted-foreground">
                         Open the venue in Google Maps to view directions without
