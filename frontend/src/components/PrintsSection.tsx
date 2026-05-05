@@ -35,6 +35,7 @@ export function PrintsSection({
     () => prints.slice(0, initialCount),
     [prints, initialCount],
   );
+
   const hasOverflow = prints.length > visiblePrints.length;
 
   if (!prints || prints.length === 0) return null;
@@ -43,39 +44,27 @@ export function PrintsSection({
     <section className="py-8 sm:py-10 lg:py-12">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/55 p-4 shadow-[0_24px_80px_hsl(0_0%_0%/0.2)] backdrop-blur-xl sm:p-6 lg:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.08),transparent_28%)]" />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-
           <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
+            {/* LEFT LABEL */}
             <div className="hidden w-28 lg:block">
-              <p className="font-display text-7xl leading-none text-primary/18 xl:text-8xl">
-                01
-              </p>
+              <p className="font-display text-7xl text-primary/18">01</p>
               <div className="mt-4 h-px w-full bg-gradient-to-r from-primary/40 to-transparent" />
               <p className="mt-4 font-display text-[11px] uppercase tracking-[0.34em] text-primary">
                 Print Collection
               </p>
             </div>
 
+            {/* MAIN */}
             <div className="min-w-0">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <div className="min-w-0">
-                  <div className="inline-flex items-center gap-3 border border-primary/20 bg-primary/10 px-4 py-2 lg:hidden">
-                    <span className="mobile-eyebrow text-primary">
-                      01
-                    </span>
-                    <span className="mobile-label text-primary">
-                      Print Collection
-                    </span>
-                  </div>
-
+              {/* HEADER */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                <div>
                   <h2 className="mobile-section-title mt-4 text-foreground">
                     Prints
                   </h2>
 
-                  <p className="mobile-body-copy mt-4 max-w-2xl text-muted-foreground">
-                    High-quality prints of selected artworks, available for
-                    purchase.
+                  <p className="mobile-body-copy mt-4 text-muted-foreground">
+                    High-quality prints available for purchase.
                   </p>
                 </div>
 
@@ -83,7 +72,6 @@ export function PrintsSection({
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full lg:w-auto"
                     onClick={() => setShowPrintsModal(true)}
                   >
                     See More
@@ -92,6 +80,7 @@ export function PrintsSection({
                 )}
               </div>
 
+              {/* CONTENT */}
               {hasOverflow ? (
                 <ArtworkPreviewCarousel
                   items={prints}
@@ -101,7 +90,7 @@ export function PrintsSection({
                   onEdit={onEditPrint}
                 />
               ) : (
-                <div className="mt-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {visiblePrints.map((print, index) => (
                     <ArtworkCard
                       key={print.id}
@@ -120,20 +109,29 @@ export function PrintsSection({
         </div>
       </div>
 
+      {/* SEE MORE MODAL */}
       <Dialog open={showPrintsModal} onOpenChange={setShowPrintsModal}>
         <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Prints</DialogTitle>
+            <DialogTitle>All Prints</DialogTitle>
           </DialogHeader>
-          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {prints.map((print) => (
               <ArtworkCard
                 key={print.id}
                 artwork={print}
                 isAdmin={isAdmin}
                 onDelete={(id) => onDeletePrint?.(id)}
-                onOpen={onOpenPrint}
-                onEdit={onEditPrint}
+                // 🔥 CRITICAL FIX: close dialog first
+                onOpen={(item) => {
+                  setShowPrintsModal(false);
+                  setTimeout(() => onOpenPrint?.(item), 50);
+                }}
+                onEdit={(item) => {
+                  setShowPrintsModal(false);
+                  setTimeout(() => onEditPrint?.(item), 50);
+                }}
               />
             ))}
           </div>

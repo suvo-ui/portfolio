@@ -113,7 +113,7 @@ export default function ArtworkModal({
       : `Hello, I'm interested in "${artwork.title}".`,
   );
 
-  const whatsappLink = `https://wa.me/8100135695?text=${whatsappMessage}`;
+  const whatsappLink = `https://wa.me/9073357775?text=${whatsappMessage}`;
 
   const canAddToCart = Boolean(effectivePrice && !artwork.is_sold);
   const canBuy = Boolean(effectivePrice && !artwork.is_sold);

@@ -9,10 +9,10 @@ import { apiUrl } from "@/lib/api";
 
 export default function Prints() {
   const { isAdmin } = useAuth();
+
   const [prints, setPrints] = useState<Print[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPrint, setSelectedPrint] = useState<Print | null>(null);
-  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchPrints = async () => {
@@ -31,24 +31,28 @@ export default function Prints() {
     fetchPrints();
   }, []);
 
+  // 🔥 OPEN MODAL
   const handleOpenPrint = (print: Print) => {
     setSelectedPrint(print);
-    setShowModal(true);
   };
 
+  // 🔥 EDIT (same as open → modal handles edit mode)
   const handleEditPrint = (print: Print) => {
-    // For now, perhaps redirect to admin or something
-    // Since admin is separate, maybe not implement edit from here
+    setSelectedPrint(print);
   };
 
+  // 🔥 DELETE
   const handleDeletePrint = async (id: number) => {
     if (!confirm("Are you sure you want to delete this print?")) return;
+
     try {
       const response = await fetch(apiUrl(`/api/admin/prints/${id}`), {
         method: "DELETE",
         credentials: "include",
       });
+
       if (!response.ok) throw new Error("Failed to delete print");
+
       setPrints((prev) => prev.filter((p) => p.id !== id));
       alert("Print deleted successfully.");
     } catch (error) {
@@ -84,13 +88,17 @@ export default function Prints() {
         </div>
       </div>
 
+      {/* 🔥 FIXED MODAL */}
       <ArtworkModal
         artwork={selectedPrint}
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => setSelectedPrint(null)}
         isAdmin={isAdmin}
-        onDelete={handleDeletePrint}
-        onEdit={handleEditPrint}
+        onSave={(updatedPrint) => {
+          setPrints((prev) =>
+            prev.map((p) => (p.id === updatedPrint.id ? updatedPrint : p)),
+          );
+          setSelectedPrint(updatedPrint);
+        }}
       />
     </Layout>
   );
