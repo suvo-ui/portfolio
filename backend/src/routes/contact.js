@@ -19,6 +19,7 @@ const allowedRequestTypes = new Set([
   "commission",
   "purchase",
   "collaboration",
+  "cart_purchase",
 ]);
 
 const contactLimiter = createRateLimiter({
@@ -55,6 +56,7 @@ function ensureContactTable() {
 router.post("/contact", contactLimiter, async (req, res) => {
   console.log("CONTACT ROUTE HIT");
   console.log(req.body);
+
   try {
     await ensureContactTable();
 
@@ -65,7 +67,6 @@ router.post("/contact", contactLimiter, async (req, res) => {
       });
     }
 
-    // Validation
     const requestType = ensureAllowedValue(
       String(req.body?.type || "")
         .trim()
@@ -74,63 +75,184 @@ router.post("/contact", contactLimiter, async (req, res) => {
       { field: "request type" },
     );
 
-    const name = requireString(req.body?.name, {
-      field: "name",
-      maxLength: 120,
-    });
+    /* ---------------------------------------------------------------------- */
+    /*                           STANDARD CONTACT FLOW                        */
+    /* ---------------------------------------------------------------------- */
 
-    const email = requireEmail(req.body?.email);
+    if (
+      requestType === "inquiry" ||
+      requestType === "commission" ||
+      requestType === "purchase" ||
+      requestType === "collaboration"
+    ) {
+      const name = requireString(req.body?.name, {
+        field: "name",
+        maxLength: 120,
+      });
 
-    const subject = requireString(req.body?.subject, {
-      field: "subject",
-      maxLength: 160,
-    });
+      const email = requireEmail(req.body?.email);
 
-    const message = requireString(req.body?.message, {
-      field: "message",
-      maxLength: 4000,
-    });
+      const subject = requireString(req.body?.subject, {
+        field: "subject",
+        maxLength: 160,
+      });
 
-    // Save in database
-    const created = await sql`
-      INSERT INTO contact_requests (
-        request_type,
-        name,
-        email,
-        subject,
-        message
-      )
-      VALUES (
-        ${requestType},
-        ${name},
-        ${email},
-        ${subject},
-        ${message}
-      )
-      RETURNING
-        id,
-        request_type,
-        name,
-        email,
-        subject,
-        message,
-        created_at;
-    `;
+      const message = requireString(req.body?.message, {
+        field: "message",
+        maxLength: 4000,
+      });
 
-    // Send email notification
-    await sendEmail({
-      type: requestType,
-      data: {
-        name,
-        email,
-        subject,
-        message,
-      },
-    });
+      // Save in database
+      const created = await sql`
+        INSERT INTO contact_requests (
+          request_type,
+          name,
+          email,
+          subject,
+          message
+        )
+        VALUES (
+          ${requestType},
+          ${name},
+          ${email},
+          ${subject},
+          ${message}
+        )
+        RETURNING
+          id,
+          request_type,
+          name,
+          email,
+          subject,
+          message,
+          created_at;
+      `;
 
-    return res.status(201).json({
-      success: true,
-      request: created[0],
+      // Send email notification
+      await sendEmail({
+        type: requestType,
+        data: {
+          name,
+          email,
+          subject,
+          message,
+        },
+      });
+
+      return res.status(201).json({
+        success: true,
+        request: created[0],
+      });
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /*                         CART PURCHASE INQUIRY                          */
+    /* ---------------------------------------------------------------------- */
+
+    if (requestType === "cart_purchase") {
+      const name = requireString(req.body?.name, {
+        field: "name",
+        maxLength: 120,
+      });
+
+      const email = requireEmail(req.body?.email);
+
+      const phone = requireString(req.body?.phone, {
+        field: "phone",
+        maxLength: 40,
+      });
+
+      const address = requireString(req.body?.address, {
+        field: "address",
+        maxLength: 1000,
+      });
+
+      const notes = String(req.body?.notes || "").trim();
+
+      const items = Array.isArray(req.body?.items) ? req.body.items : [];
+
+      if (!items.length) {
+        return res.status(400).json({
+          error: "Cart items are required",
+        });
+      }
+
+      const total = Number(req.body?.total || 0);
+
+      const generatedMessage = `
+Cart Purchase Inquiry
+
+Selected Artworks:
+${items
+  .map(
+    (item, index) =>
+      `${index + 1}. ${item.title} (${item.type}) x${
+        item.quantity
+      } - INR ${(item.price * item.quantity).toLocaleString()}`,
+  )
+  .join("\n")}
+
+Total:
+INR ${total.toLocaleString()}
+
+Phone:
+${phone}
+
+Shipping Address:
+${address}
+
+Additional Notes:
+${notes || "None"}
+      `;
+
+      // Save in database
+      const created = await sql`
+        INSERT INTO contact_requests (
+          request_type,
+          name,
+          email,
+          subject,
+          message
+        )
+        VALUES (
+          ${requestType},
+          ${name},
+          ${email},
+          ${"Cart Purchase Inquiry"},
+          ${generatedMessage}
+        )
+        RETURNING
+          id,
+          request_type,
+          name,
+          email,
+          subject,
+          message,
+          created_at;
+      `;
+
+      // Send email notification
+      await sendEmail({
+        type: "cart_purchase",
+        data: {
+          name,
+          email,
+          phone,
+          address,
+          notes,
+          items,
+          total,
+        },
+      });
+
+      return res.status(201).json({
+        success: true,
+        request: created[0],
+      });
+    }
+
+    return res.status(400).json({
+      error: "Unsupported request type",
     });
   } catch (err) {
     console.error("CONTACT ROUTE ERROR:", err);

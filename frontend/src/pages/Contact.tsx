@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ArrowUpRight,
   Instagram,
@@ -96,16 +97,26 @@ const premiumNotes = [
 ];
 
 const Contact = () => {
+  const [searchParams] = useSearchParams();
+
+  const artworkTitle = searchParams.get("artwork");
+  const inquiryType = searchParams.get("type");
   const { toast } = useToast();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
+    type: inquiryType || "inquiry",
+
     name: "",
+
     email: "",
-    subject: "",
-    message: "",
-    type: "inquiry",
+
+    subject: artworkTitle ? `Purchase Inquiry — ${artworkTitle}` : "",
+
+    message: artworkTitle
+      ? `Hi, I'm interested in purchasing the artwork "${artworkTitle}".\n\nPlease share availability and next steps.`
+      : "",
   });
 
   const selectedInquiry =
@@ -323,6 +334,22 @@ const Contact = () => {
                     <p className="mobile-body-copy mt-5 text-muted-foreground">
                       {selectedInquiry.copy}
                     </p>
+
+                    {artworkTitle && (
+                      <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-5 backdrop-blur-xl">
+                        <p className="text-[10px] uppercase tracking-[0.35em] text-primary/70">
+                          Purchase Inquiry
+                        </p>
+
+                        <h3 className="mt-2 text-xl font-semibold text-white">
+                          {artworkTitle}
+                        </h3>
+
+                        <p className="mt-2 text-sm text-zinc-400">
+                          You're contacting the studio regarding this artwork.
+                        </p>
+                      </div>
+                    )}
 
                     <form
                       onSubmit={handleSubmit}

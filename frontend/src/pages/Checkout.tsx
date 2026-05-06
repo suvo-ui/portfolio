@@ -20,12 +20,63 @@ export default function Checkout() {
     address: "",
     notes: "",
   });
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEmailInquiry = async () => {
+    try {
+      setIsSendingEmail(true);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/contact`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            type: "cart_purchase",
+
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            notes: formData.notes,
+
+            items,
+
+            total,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to send inquiry");
+      }
+
+      alert("Purchase inquiry submitted successfully.");
+
+      clearCart();
+
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        notes: "",
+      });
+    } catch (error) {
+      console.error(error);
+
+      alert("Something went wrong.");
+    }
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -84,9 +135,7 @@ export default function Checkout() {
           className="mx-auto max-w-6xl"
         >
           <div className="max-w-2xl">
-            <p className="mobile-eyebrow text-primary">
-              Checkout
-            </p>
+            <p className="mobile-eyebrow text-primary">Checkout</p>
             <h1 className="mobile-page-title mt-4 text-foreground">
               Review your order.
             </h1>
@@ -203,9 +252,58 @@ export default function Checkout() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg">
-                    Enquire on WhatsApp
-                  </Button>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* Primary Email Inquiry */}
+                    <Button
+                      disabled={isSendingEmail}
+                      type="button"
+                      onClick={handleEmailInquiry}
+                      size="lg"
+                      className="
+      h-14
+      rounded-xl
+      border border-primary/20
+      bg-gradient-to-b
+      from-primary
+      to-yellow-600
+      font-semibold
+      text-black
+      shadow-[0_12px_40px_rgba(255,180,0,0.28)]
+      transition-all duration-300
+      hover:scale-[1.01]
+      hover:from-yellow-300
+      hover:to-primary
+      hover:shadow-[0_16px_55px_rgba(255,180,0,0.38)]
+      active:scale-[0.98]
+    "
+                    >
+                      {isSendingEmail ? "Sending..." : "Enquire on Email"}
+                    </Button>
+
+                    {/* Secondary WhatsApp */}
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      size="lg"
+                      className="
+      h-14
+      rounded-xl
+      border border-emerald-500/30
+      bg-emerald-500/10
+      font-medium
+      text-emerald-400
+      backdrop-blur-xl
+      transition-all duration-300
+      hover:scale-[1.01]
+      hover:border-emerald-400/50
+      hover:bg-emerald-500/15
+      hover:text-emerald-300
+      active:scale-[0.98]
+    "
+                    >
+                      Enquire on WhatsApp
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>

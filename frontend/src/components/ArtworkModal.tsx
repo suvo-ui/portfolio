@@ -196,7 +196,7 @@ export default function ArtworkModal({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex justify-center overflow-y-auto bg-black/70 p-2 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/70 py-4 backdrop-blur-sm sm:p-6"
       onClick={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -204,7 +204,22 @@ export default function ArtworkModal({
       transition={{ duration: 0.3 }}
     >
       <motion.div
-        className="relative mx-auto grid max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl sm:max-h-[90vh] lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+        className="relative
+    mx-auto
+    grid
+    w-full
+    max-w-6xl
+    overflow-y-auto
+    rounded-2xl
+    border
+    border-white/10
+    bg-zinc-900
+    shadow-2xl
+
+    max-h-[100dvh]
+
+    lg:max-h-[92vh]
+    lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
         onClick={(event) => event.stopPropagation()}
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -501,24 +516,88 @@ export default function ArtworkModal({
             )}
           </div>
 
-          <div className="sticky bottom-0 z-10 -mx-4 mt-6 grid grid-cols-1 gap-3 border-t border-white/10 bg-zinc-900/96 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none sm:grid-cols-2">
-            {canBuy && (
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-emerald-500 px-5 py-3 font-medium text-black transition hover:bg-emerald-400"
-              >
-                Buy on WhatsApp
-              </a>
-            )}
+          <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-white/10 bg-zinc-900/96 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {/* WhatsApp */}
+              {canBuy && (
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="
+          inline-flex min-h-12 w-full items-center justify-center
+          rounded-xl
+          border border-emerald-400/30
+          bg-gradient-to-b from-emerald-400 to-emerald-500
+          px-5 py-3
+          font-semibold
+          text-black
+          shadow-[0_10px_40px_rgba(16,185,129,0.25)]
+          transition-all duration-300
+          hover:scale-[1.02]
+          hover:from-emerald-300
+          hover:to-emerald-400
+          hover:shadow-[0_14px_50px_rgba(16,185,129,0.35)]
+          active:scale-[0.98]
+        "
+                >
+                  Buy on WhatsApp
+                </a>
+              )}
 
-            <button
-              onClick={canAddToCart ? handleAddToCart : onClose}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-zinc-700 px-5 py-3 text-white transition hover:bg-zinc-600"
-            >
-              {canAddToCart ? "Add to Cart" : "Close"}
-            </button>
+              {/* Buy via Email */}
+              {canBuy && (
+                <button
+                  onClick={() => {
+                    window.location.href = `/contact?type=purchase&artwork=${encodeURIComponent(
+                      artwork.title,
+                    )}`;
+                  }}
+                  className="
+          inline-flex min-h-12 w-full items-center justify-center
+          rounded-xl
+          border border-primary/30
+          bg-black/40
+          px-5 py-3
+          font-medium
+          text-primary
+          backdrop-blur-xl
+          shadow-[0_10px_35px_rgba(255,180,0,0.08)]
+          transition-all duration-300
+          hover:scale-[1.02]
+          hover:border-primary/60
+          hover:bg-primary/10
+          hover:shadow-[0_14px_50px_rgba(255,180,0,0.12)]
+          active:scale-[0.98]
+        "
+                >
+                  Buy via Email
+                </button>
+              )}
+
+              {/* Add to Cart */}
+              <button
+                onClick={canAddToCart ? handleAddToCart : onClose}
+                className="
+        inline-flex min-h-12 w-full items-center justify-center
+        rounded-xl
+        border border-white/10
+        bg-[linear-gradient(180deg,#18181b_0%,#09090b_100%)]
+        px-5 py-3
+        font-medium
+        text-white
+        shadow-[0_12px_40px_rgba(0,0,0,0.45)]
+        transition-all duration-300
+        hover:scale-[1.02]
+        hover:border-primary/30
+        hover:bg-primary/5
+        hover:text-primary
+        active:scale-[0.98]
+      "
+              >
+                {canAddToCart ? "Add to Cart" : "Close"}
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
