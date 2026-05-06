@@ -96,7 +96,7 @@ ${data.notes || "None"}
   /* ------------------------------------------------ */
 
   await resend.emails.send({
-    from: "onboarding@resend.dev",
+    from: "Paper Slayer <contact@paperslayer.in>",
     to: process.env.EMAIL_USER,
     replyTo: data.email,
     subject,
@@ -108,7 +108,7 @@ ${data.notes || "None"}
   /* ------------------------------------------------ */
 
   await resend.emails.send({
-    from: "onboarding@resend.dev",
+    from: "Paper Slayer <contact@paperslayer.in>",
     to: data.email,
     subject: "We received your message",
     text: "Thank you for reaching out. Your inquiry has been received successfully.",
