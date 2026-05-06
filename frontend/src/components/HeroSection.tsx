@@ -214,22 +214,6 @@ export function HeroSection({
                 </Button>
               </motion.div>
 
-              <motion.div
-                variants={itemVariants}
-                className="mt-8 hidden grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 md:grid"
-              >
-                {heroStats.map((stat) => (
-                  <div key={stat.label} className="border-l border-white/30 pl-4">
-                    <p className="font-display text-2xl font-bold text-foreground drop-shadow-[0_8px_22px_rgba(0,0,0,0.45)] sm:text-3xl">
-                      {stat.value}
-                    </p>
-                    <p className="mobile-label mt-2 text-foreground/78 drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
-                      {stat.label}
-                    </p>
-                  </div>
-                ))}
-              </motion.div>
-
               <motion.button
                 variants={itemVariants}
                 onClick={scrollToGallery}
