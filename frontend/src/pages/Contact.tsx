@@ -97,7 +97,9 @@ const premiumNotes = [
 
 const Contact = () => {
   const { toast } = useToast();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -110,26 +112,47 @@ const Contact = () => {
     inquiryTypes.find((inquiry) => inquiry.value === formData.type) ??
     inquiryTypes[0];
 
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
 
     try {
       const response = await fetch(apiUrl("/api/contact"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: formData.type,
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        }),
       });
 
-      const data = await response.json().catch(() => null);
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Message could not be sent.");
+        throw new Error(result?.error || "Failed to send message");
       }
 
       toast({
         title: "Message Sent",
-        description: `Your ${selectedInquiry.label.toLowerCase()} is in. I will get back to you soon.`,
+        description:
+          "Your message has been sent successfully. A reply will follow soon.",
       });
 
       setFormData({
@@ -140,6 +163,8 @@ const Contact = () => {
         type: "inquiry",
       });
     } catch (error) {
+      console.error("CONTACT FORM ERROR:", error);
+
       toast({
         variant: "destructive",
         title: "Message Failed",
@@ -151,15 +176,6 @@ const Contact = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [event.target.name]: event.target.value,
-    }));
   };
 
   return (
@@ -308,12 +324,16 @@ const Contact = () => {
                       {selectedInquiry.copy}
                     </p>
 
-                    <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:space-y-5">
+                    <form
+                      onSubmit={handleSubmit}
+                      className="mt-6 space-y-4 sm:space-y-5"
+                    >
                       <div className="space-y-2">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                           <Label className="font-display text-sm uppercase tracking-[0.24em] text-foreground/80">
                             Inquiry Type
                           </Label>
+
                           <span className="font-display text-[11px] uppercase tracking-[0.22em] text-primary">
                             {selectedInquiry.label}
                           </span>
@@ -331,6 +351,7 @@ const Contact = () => {
                           <SelectTrigger className="h-14 rounded-none border-primary/18 bg-[linear-gradient(180deg,hsl(var(--background)/0.78),hsl(var(--card)/0.7))] px-4 text-sm text-foreground shadow-[0_14px_36px_hsl(0_0%_0%/0.14)] ring-offset-0 focus:ring-1 focus:ring-primary focus:ring-offset-0 [&_svg]:text-primary [&_svg]:opacity-100">
                             <SelectValue placeholder="Choose an inquiry type" />
                           </SelectTrigger>
+
                           <SelectContent className="rounded-none border-primary/18 bg-[linear-gradient(180deg,hsl(var(--popover))_0%,hsl(var(--card))_100%)] p-2 shadow-[0_22px_70px_hsl(0_0%_0%/0.4)]">
                             {inquiryTypes.map((inquiry) => (
                               <SelectItem
@@ -353,6 +374,7 @@ const Contact = () => {
                           >
                             Name
                           </Label>
+
                           <Input
                             id="name"
                             name="name"
@@ -372,6 +394,7 @@ const Contact = () => {
                           >
                             Email
                           </Label>
+
                           <Input
                             id="email"
                             name="email"
@@ -392,6 +415,7 @@ const Contact = () => {
                         >
                           Subject
                         </Label>
+
                         <Input
                           id="subject"
                           name="subject"
@@ -411,6 +435,7 @@ const Contact = () => {
                         >
                           Message
                         </Label>
+
                         <Textarea
                           id="message"
                           name="message"

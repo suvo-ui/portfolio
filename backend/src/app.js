@@ -14,6 +14,7 @@ import courseDemoVideoRoutes from "./routes/courseDemoVideos.js";
 import categoriesRoutes from "./routes/categories.js";
 import workshopRoutes from "./routes/workshops.js";
 import heroCarouselRoutes from "./routes/heroCarousel.js";
+// import emailRoutes from "./routes/email.js";
 
 import corsOptions from "./config/cors.js";
 import sql from "./config/db.js";
@@ -58,6 +59,7 @@ app.use("/api/course-demo-videos", courseDemoVideoRoutes); // 🎬 course demo v
 app.use("/api", categoriesRoutes); // 🏷 categories
 app.use("/api/workshops", workshopRoutes); // 🎥 workshops
 app.use("/api/hero-carousel", heroCarouselRoutes); // 🎠 hero carousel
+// app.use("/api/email", emailRoutes); // emails
 
 if (process.env.NODE_ENV !== "production") {
   app.get("/api/db-test", async (req, res) => {
