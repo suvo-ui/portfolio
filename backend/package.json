@@ -23,7 +23,8 @@
     "multer": "^2.0.2",
     "nodemailer": "^8.0.7",
     "pg": "^8.16.3",
-    "postgres": "^3.4.8"
+    "postgres": "^3.4.8",
+    "resend": "^6.12.3"
   },
   "devDependencies": {
     "eslint": "^9.39.2",

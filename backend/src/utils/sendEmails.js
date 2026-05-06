@@ -1,22 +1,13 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async ({ type, data }) => {
   let subject = "";
   let text = "";
-  let autoReplySubject = "We received your message";
-  let autoReplyText =
-    "Thank you for reaching out. Your message has been received and a reply will follow soon.";
 
   /* ------------------------------------------------ */
-  /* CONTACT / SINGLE ARTWORK INQUIRIES               */
+  /* STANDARD CONTACT TYPES                           */
   /* ------------------------------------------------ */
 
   if (type === "inquiry") {
@@ -58,7 +49,7 @@ ${data.message}
   }
 
   /* ------------------------------------------------ */
-  /* CART PURCHASE INQUIRY                            */
+  /* CART PURCHASE                                    */
   /* ------------------------------------------------ */
 
   if (type === "cart_purchase") {
@@ -76,51 +67,27 @@ ${data.message}
     text = `
 NEW CART PURCHASE INQUIRY
 
-==================================================
-
-BUYER INFORMATION
-
+Buyer Information
+--------------------------
 Name: ${data.name}
 Email: ${data.email}
 Phone: ${data.phone}
 
-==================================================
-
-SHIPPING ADDRESS
-
+Shipping Address
+--------------------------
 ${data.address}
 
-==================================================
-
-SELECTED ARTWORKS
-
+Selected Artworks
+--------------------------
 ${itemsList}
 
-==================================================
-
-TOTAL
-
+Total
+--------------------------
 INR ${data.total.toLocaleString()}
 
-==================================================
-
-ADDITIONAL NOTES
-
+Additional Notes
+--------------------------
 ${data.notes || "None"}
-
-==================================================
-    `;
-
-    autoReplySubject = "Your purchase inquiry was received";
-
-    autoReplyText = `
-Thank you for your purchase inquiry.
-
-The studio has received your selected artworks and inquiry details successfully.
-
-A response regarding availability, shipping, and next steps will follow shortly.
-
-— Paper Slayer Studio
     `;
   }
 
@@ -128,8 +95,8 @@ A response regarding availability, shipping, and next steps will follow shortly.
   /* SEND TO ADMIN                                    */
   /* ------------------------------------------------ */
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await resend.emails.send({
+    from: "onboarding@resend.dev",
     to: process.env.EMAIL_USER,
     replyTo: data.email,
     subject,
@@ -140,10 +107,10 @@ A response regarding availability, shipping, and next steps will follow shortly.
   /* AUTO REPLY TO USER                               */
   /* ------------------------------------------------ */
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await resend.emails.send({
+    from: "onboarding@resend.dev",
     to: data.email,
-    subject: autoReplySubject,
-    text: autoReplyText,
+    subject: "We received your message",
+    text: "Thank you for reaching out. Your inquiry has been received successfully.",
   });
 };
