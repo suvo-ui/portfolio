@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router-dom";
 
+import LazyImage from "@/components/LazyImage";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api";
@@ -155,9 +156,11 @@ const ArtworkDetail = () => {
                 <div className="absolute left-3 top-3 z-10 border border-border/60 bg-background/85 px-3 py-1 text-[10px] uppercase tracking-[0.32em] text-muted-foreground backdrop-blur-sm sm:left-5 sm:top-5">
                   {artwork.is_sold ? "Collected" : "Available"}
                 </div>
-                <img
+                <LazyImage
                   src={artwork.image_url}
                   alt={artwork.title}
+                  priority
+                  sizes="(min-width: 1024px) 58vw, 100vw"
                   className="aspect-[4/5] w-full object-cover lg:aspect-auto lg:max-h-[80vh] lg:object-contain"
                 />
               </div>

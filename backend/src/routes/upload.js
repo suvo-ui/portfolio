@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import sharp from "sharp";
 
 import supabase from "../config/supabase.js";
 import { HttpError, sendRouteError } from "../lib/http.js";
@@ -12,6 +13,8 @@ import createRateLimiter from "../middlewares/rateLimit.js";
 
 const router = express.Router();
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const OPTIMIZED_IMAGE_MAX_DIMENSION = 1800;
+const OPTIMIZED_IMAGE_QUALITY = 84;
 const SUPABASE_UPLOAD_TIMEOUT_MS = 30_000;
 const adminUploadLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -56,6 +59,28 @@ function withTimeout(promise, timeoutMs, label) {
   });
 }
 
+async function optimizeArtworkImage(buffer) {
+  try {
+    return await sharp(buffer, {
+      limitInputPixels: 40_000_000,
+    })
+      .rotate()
+      .resize({
+        width: OPTIMIZED_IMAGE_MAX_DIMENSION,
+        height: OPTIMIZED_IMAGE_MAX_DIMENSION,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({
+        quality: OPTIMIZED_IMAGE_QUALITY,
+        effort: 5,
+      })
+      .toBuffer();
+  } catch {
+    throw new HttpError(400, "Unable to optimize uploaded image");
+  }
+}
+
 router.post("/", adminAuth, adminUploadLimiter, async (req, res) => {
   try {
     await runMulter(req, res);
@@ -64,12 +89,14 @@ router.post("/", adminAuth, adminUploadLimiter, async (req, res) => {
       throw new HttpError(400, "No file uploaded");
     }
 
-    const detectedType = detectUploadedFileType(req.file, "image");
-    const objectPath = buildStorageObjectPath("artworks", detectedType.extension);
+    detectUploadedFileType(req.file, "image");
+    const optimizedBuffer = await optimizeArtworkImage(req.file.buffer);
+    const objectPath = buildStorageObjectPath("artworks", "webp");
 
     const { error } = await withTimeout(
-      supabase.storage.from("artworks").upload(objectPath, req.file.buffer, {
-        contentType: detectedType.contentType,
+      supabase.storage.from("artworks").upload(objectPath, optimizedBuffer, {
+        contentType: "image/webp",
+        cacheControl: "31536000",
         upsert: false,
       }),
       SUPABASE_UPLOAD_TIMEOUT_MS,

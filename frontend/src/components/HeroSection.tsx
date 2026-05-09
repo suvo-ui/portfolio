@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 
+import LazyImage from "@/components/LazyImage";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -104,7 +105,7 @@ export function HeroSection({
               opts={{ loop: true }}
             >
               <CarouselContent className="h-full">
-                {carouselImages.map((image) => (
+                {carouselImages.map((image, index) => (
                   <CarouselItem key={image.id} className="h-full basis-full">
                     <motion.div
                       className="h-full w-full"
@@ -112,9 +113,11 @@ export function HeroSection({
                       animate={{ scale: 1.01, opacity: 1 }}
                       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <img
+                      <LazyImage
                         src={image.image_url}
                         alt={image.title}
+                        priority={index === 0}
+                        sizes="100vw"
                         className="h-full w-full object-contain object-center bg-black"
                       />
                     </motion.div>

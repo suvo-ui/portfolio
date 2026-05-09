@@ -129,9 +129,15 @@ export function ArtworkCard({
           <LazyImage
             src={artwork.image_url}
             alt={artwork.title}
+            priority={priority}
+            sizes={
+              featured
+                ? "(min-width: 1024px) 50vw, 100vw"
+                : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+            }
             className={cn(
               "h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.03]",
-              isSold && "opacity-70",
+              isSold && "brightness-75",
               priority && "will-change-transform",
             )}
           />

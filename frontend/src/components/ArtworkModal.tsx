@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import LazyImage from "@/components/LazyImage";
 import { useCart } from "@/context/CartContext";
 import { apiUrl } from "@/lib/api";
 
@@ -289,20 +290,17 @@ export default function ArtworkModal({
                 ease: "easeInOut",
               },
             }}
+            whileHover={{
+              scale: 1.03,
+            }}
+            whileTap={{ scale: 0.98 }}
           >
-            <motion.img
+            <LazyImage
               src={artwork.image_url}
               alt={artwork.title}
+              priority
+              sizes="(min-width: 1024px) 55vw, 100vw"
               className="aspect-[4/5] w-full cursor-pointer object-cover lg:aspect-auto lg:max-h-[78vh] lg:object-contain"
-              transition={{
-                duration: 4,
-                repeat: 0,
-                ease: "easeInOut",
-              }}
-              whileHover={{
-                scale: 1.05,
-              }}
-              whileTap={{ scale: 0.98 }}
             />
           </motion.div>
 

@@ -1,41 +1,119 @@
 import { useEffect, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
+const preconnectedHosts = new Set<string>();
+
+function preconnectImageHost(src: string) {
+  if (typeof document === "undefined") return;
+
+  try {
+    const { origin } = new URL(src);
+    if (preconnectedHosts.has(origin)) return;
+
+    const link = document.createElement("link");
+    link.rel = "preconnect";
+    link.href = origin;
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
+    preconnectedHosts.add(origin);
+  } catch {
+    // Non-URL image sources still render normally.
+  }
+}
+
 interface Props {
   src: string;
   alt: string;
   className?: string;
+  priority?: boolean;
+  sizes?: string;
+  loading?: "eager" | "lazy";
+  decoding?: "async" | "auto" | "sync";
+  fetchPriority?: "high" | "low" | "auto";
 }
 
-export default function LazyImage({ src, alt, className }: Props) {
+export default function LazyImage({
+  src,
+  alt,
+  className,
+  priority = false,
+  sizes,
+  loading,
+  decoding = "async",
+  fetchPriority,
+}: Props) {
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(priority);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    if (src) {
+      preconnectImageHost(src);
+    }
+  }, [src]);
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+    setShouldLoad(priority);
+  }, [priority, src]);
+
+  useEffect(() => {
+    if (priority || shouldLoad) return;
+
+    const image = imgRef.current;
+    if (!image) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true);
+          setShouldLoad(true);
           observer.disconnect();
         }
       },
       {
-        rootMargin: "100px", // preload slightly before entering view
+        rootMargin: "400px 0px",
       },
     );
 
-    if (imgRef.current) observer.observe(imgRef.current);
+    observer.observe(image);
 
     return () => observer.disconnect();
-  }, []);
+  }, [priority, shouldLoad]);
+
+  const resolvedLoading = loading ?? (priority ? "eager" : "lazy");
+  const resolvedFetchPriority = fetchPriority ?? (priority ? "high" : "auto");
 
   return (
-    <img
-      ref={imgRef}
-      src={isVisible ? src : ""}
-      alt={alt}
-      className={`transition-all duration-700 ease-out ${
-        isVisible ? "opacity-100" : "opacity-0"
-      } ${className}`}
-    />
+    <div className="relative h-full w-full overflow-hidden bg-zinc-950">
+      {!isLoaded && !hasError && (
+        <div className="absolute inset-0 bg-[linear-gradient(110deg,hsl(var(--muted)/0.35)_8%,hsl(var(--muted)/0.65)_18%,hsl(var(--muted)/0.35)_33%)] bg-[length:200%_100%] animate-[shimmer_1.35s_linear_infinite]" />
+      )}
+
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 px-4 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Image unavailable
+        </div>
+      )}
+
+      <img
+        ref={imgRef}
+        src={shouldLoad ? src : undefined}
+        alt={alt}
+        sizes={sizes}
+        loading={resolvedLoading}
+        decoding={decoding}
+        fetchPriority={resolvedFetchPriority}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setHasError(true)}
+        className={cn(
+          "transition-[opacity,transform,filter] duration-700 ease-out",
+          isLoaded ? "opacity-100 blur-0" : "opacity-0 blur-sm",
+          className,
+        )}
+      />
+    </div>
   );
 }
