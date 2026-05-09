@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 256 256"
+     width="256"
+     height="256">
+
+  <g fill="#E0AD2F">
+
+    <!-- Pommel -->
+    <polygon points="128,8 150,30 128,52 106,30"/>
+
+    <!-- Handle -->
+    <rect x="118" y="42" width="20" height="42"/>
+
+    <!-- Crossguard -->
+    <rect x="44" y="84" width="168" height="16"/>
+
+    <!-- Left Blade -->
+    <polygon points="
+      58,104
+      92,104
+      118,130
+      118,104
+      166,104
+      96,198
+    "/>
+
+    <!-- Right Blade -->
+    <polygon points="
+      184,104
+      154,104
+      108,192
+      128,248
+    "/>
+
+  </g>
+
+  <!-- Clean central slash -->
+  <polygon points="
+    142,100
+    156,100
+    108,198
+    96,198
+  "
+  fill="#000000"/>
+
+</svg>

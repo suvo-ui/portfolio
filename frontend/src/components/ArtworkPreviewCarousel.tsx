@@ -15,6 +15,7 @@ import {
 
 interface ArtworkPreviewCarouselProps<T extends ArtworkCardArtwork> {
   items: T[];
+  itemType?: "artwork" | "print";
   isAdmin?: boolean;
   onDelete?: (id: number) => void;
   onOpen?: (artwork: T) => void;
@@ -24,6 +25,7 @@ interface ArtworkPreviewCarouselProps<T extends ArtworkCardArtwork> {
 
 export function ArtworkPreviewCarousel<T extends ArtworkCardArtwork>({
   items,
+  itemType = "artwork",
   isAdmin = false,
   onDelete,
   onOpen,
@@ -75,6 +77,7 @@ export function ArtworkPreviewCarousel<T extends ArtworkCardArtwork>({
             >
               <ArtworkCard
                 artwork={artwork}
+                itemType={itemType}
                 priority={index < 2}
                 isAdmin={isAdmin}
                 onDelete={(id) => onDelete?.(id)}

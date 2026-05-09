@@ -15,7 +15,7 @@ interface Artwork {
   image_url: string;
   price_inr?: number;
   size?: string;
-  is_sold?: boolean;
+  is_sold?: boolean | string | number | null;
   for_sale?: boolean;
   available_for_print?: boolean;
   category?: string;
@@ -24,13 +24,19 @@ interface Artwork {
 
 interface Props {
   artwork: Artwork | null;
+  itemType?: "artwork" | "print";
   isAdmin?: boolean;
   onClose: () => void;
-  onSave?: (artwork: Artwork) => void;
+  onSave?: (artwork: Artwork) => void | Promise<void>;
+}
+
+function isTruthyBoolean(value: unknown) {
+  return value === true || value === "true" || value === 1 || value === "1";
 }
 
 export default function ArtworkModal({
   artwork,
+  itemType = "artwork",
   onClose,
   isAdmin = false,
   onSave,
@@ -91,7 +97,7 @@ export default function ArtworkModal({
         null,
       for_sale: artwork.for_sale ?? false,
       available_for_print: artwork.available_for_print ?? false,
-      is_sold: artwork.is_sold ?? false,
+      is_sold: isTruthyBoolean(artwork.is_sold),
     });
   }, [artwork, categories]);
 
@@ -115,15 +121,16 @@ export default function ArtworkModal({
 
   const whatsappLink = `https://wa.me/9073357775?text=${whatsappMessage}`;
 
-  const canAddToCart = Boolean(effectivePrice && !artwork.is_sold);
-  const canBuy = Boolean(effectivePrice && !artwork.is_sold);
+  const isSold = isTruthyBoolean(artwork.is_sold);
+  const canAddToCart = Boolean(effectivePrice && !isSold);
+  const canBuy = Boolean(effectivePrice && !isSold);
 
   const handleAddToCart = () => {
     if (!canAddToCart) return;
 
     addItem({
-      id: `artwork-${artwork.id}`,
-      type: "artwork",
+      id: `${itemType}-${artwork.id}`,
+      type: itemType,
       title: artwork.title,
       price: artwork.price_inr,
       image_url: artwork.image_url,
@@ -136,7 +143,7 @@ export default function ArtworkModal({
   const handleSaveArtwork = async () => {
     if (!artwork) return;
     if (formData.for_sale && formData.price_inr.trim() === "") {
-      alert("Price is required when artwork is for sale.");
+      alert(`Price is required when ${itemType} is for sale.`);
       return;
     }
 
@@ -156,31 +163,49 @@ export default function ArtworkModal({
       };
 
       const response = await fetch(
-        apiUrl(`/api/admin/artworks/${artwork.id}`),
+        apiUrl(`/api/admin/${itemType}s/${artwork.id}`),
         {
           method: "PUT",
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(
+            itemType === "print"
+              ? {
+                  title: payload.title,
+                  description: payload.description,
+                  image_url: payload.image_url,
+                  price_inr: payload.price_inr,
+                  size: payload.size,
+                  category_id: payload.category_id,
+                  is_sold: payload.is_sold,
+                  for_sale: payload.for_sale,
+                }
+              : payload,
+          ),
         },
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Failed to save artwork details.");
+        throw new Error(data?.error || `Failed to save ${itemType} details.`);
       }
 
-      onSave?.(data);
+      await onSave?.({
+        ...artwork,
+        ...data,
+        is_sold: formData.is_sold,
+        for_sale: formData.for_sale,
+      });
       setIsEditing(false);
     } catch (error) {
-      console.error("Failed to save artwork:", error);
+      console.error(`Failed to save ${itemType}:`, error);
       alert(
         error instanceof Error
           ? error.message
-          : "Unable to save artwork details.",
+          : `Unable to save ${itemType} details.`,
       );
     } finally {
       setIsSaving(false);
@@ -281,7 +306,7 @@ export default function ArtworkModal({
             />
           </motion.div>
 
-          {artwork.is_sold && (
+          {isSold && (
             <motion.span
               className="absolute left-4 top-4 rounded-lg bg-red-600 px-3 py-1 text-sm text-white sm:left-6 sm:top-6"
               initial={{ opacity: 0, x: -20 }}
@@ -297,7 +322,9 @@ export default function ArtworkModal({
           <div>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="mobile-eyebrow text-primary">Artwork Detail</p>
+                <p className="mobile-eyebrow text-primary">
+                  {itemType === "print" ? "Print Detail" : "Artwork Detail"}
+                </p>
                 <h2 className="mt-3 break-words font-display text-2xl font-bold text-white sm:mt-4 sm:text-4xl">
                   {artwork.title}
                 </h2>
@@ -311,7 +338,7 @@ export default function ArtworkModal({
                       onClick={() => setIsEditing(true)}
                       className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/15 sm:min-h-12 sm:px-5"
                     >
-                      Edit Artwork
+                      {itemType === "print" ? "Edit Print" : "Edit Artwork"}
                     </button>
                   ) : (
                     <>
@@ -507,7 +534,7 @@ export default function ArtworkModal({
                   )}
                 </div>
 
-                {!artwork.for_sale && !artwork.is_sold && (
+                {!artwork.for_sale && !isSold && (
                   <p className="mt-4 text-sm text-zinc-400">
                     Available on inquiry.
                   </p>

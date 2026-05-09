@@ -13,13 +13,18 @@ export interface Artwork {
   image_url: string;
   category?: string;
   price_inr?: number;
-  is_sold?: boolean;
+  is_sold?: boolean | string | number | null;
   available_for_print?: boolean;
   for_sale?: boolean;
 }
 
+function isTruthyBoolean(value: unknown) {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
 interface ArtworkCardProps {
   artwork: Artwork;
+  itemType?: "artwork" | "print";
   priority?: boolean;
   isAdmin?: boolean;
   featured?: boolean;
@@ -30,6 +35,7 @@ interface ArtworkCardProps {
 
 export function ArtworkCard({
   artwork,
+  itemType = "artwork",
   priority = false,
   isAdmin = false,
   featured = false,
@@ -38,6 +44,7 @@ export function ArtworkCard({
   onDelete,
 }: ArtworkCardProps) {
   const { addItem } = useCart();
+  const isSold = isTruthyBoolean(artwork.is_sold);
 
   const handleDelete = (event: MouseEvent) => {
     event.stopPropagation();
@@ -50,11 +57,11 @@ export function ArtworkCard({
   const handleAddToCart = (event: MouseEvent) => {
     event.stopPropagation();
 
-    if (!artwork.price_inr || artwork.is_sold) return;
+    if (!artwork.price_inr || isSold) return;
 
     addItem({
-      id: `artwork-${artwork.id}`,
-      type: "artwork",
+      id: `${itemType}-${artwork.id}`,
+      type: itemType,
       title: artwork.title,
       price: artwork.price_inr,
       image_url: artwork.image_url,
@@ -65,7 +72,7 @@ export function ArtworkCard({
   const priceLabel =
     artwork.price_inr !== null && artwork.price_inr !== undefined
       ? `INR ${artwork.price_inr.toLocaleString()}`
-      : artwork.is_sold
+      : isSold
         ? "Collected"
         : "Available on inquiry";
 
@@ -78,8 +85,16 @@ export function ArtworkCard({
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
+      {isSold && (
+        <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
+          <span className="inline-flex min-h-8 items-center whitespace-nowrap border border-red-500/70 bg-black/80 px-3 py-1 text-sm font-semibold uppercase tracking-wider text-red-500 shadow-[0_12px_30px_rgba(0,0,0,0.45)] animate-pulse">
+            SOLD OUT
+          </span>
+        </div>
+      )}
+
       {isAdmin && (
-        <div className="absolute right-3 top-3 z-20 flex gap-2">
+        <div className="absolute right-3 top-3 z-40 flex gap-2">
           <button
             onClick={(event) => {
               event.stopPropagation();
@@ -111,19 +126,12 @@ export function ArtworkCard({
           onClick={() => onOpen?.(artwork)}
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_48%)] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
-          {artwork.is_sold && (
-            <div className="mt-2 text-center">
-              <span className="inline-block text-sm font-semibold tracking-wider text-red-500 animate-pulse">
-                SOLD OUT
-              </span>
-            </div>
-          )}
           <LazyImage
             src={artwork.image_url}
             alt={artwork.title}
             className={cn(
               "h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.03]",
-              artwork.is_sold && "opacity-70",
+              isSold && "opacity-70",
               priority && "will-change-transform",
             )}
           />
@@ -148,7 +156,7 @@ export function ArtworkCard({
           </div>
 
           <div className="mt-auto grid grid-cols-2 gap-2">
-            {artwork.price_inr && !artwork.is_sold && (
+            {artwork.price_inr && !isSold && (
               <Button
                 type="button"
                 size="default"
@@ -165,7 +173,7 @@ export function ArtworkCard({
               onClick={() => onOpen?.(artwork)}
               className={cn(
                 "inline-flex min-h-11 w-full items-center justify-center gap-2 border border-border/60 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors",
-                !(artwork.price_inr && !artwork.is_sold) && "col-span-2",
+                !(artwork.price_inr && !isSold) && "col-span-2",
               )}
             >
               View Details

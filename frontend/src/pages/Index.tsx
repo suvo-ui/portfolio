@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { AboutSection } from "@/components/AboutSection";
 import { GallerySection } from "@/components/GallerySection";
 import { HeroSection } from "@/components/HeroSection";
 import { Layout } from "@/components/Layout";
-import { PrintsSection } from "@/components/PrintsSection";
 import ArtworkModal from "@/components/ArtworkModal";
 import type { Artwork } from "@/components/ArtworkCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,6 +71,30 @@ const sortByNewest = (items: Artwork[]) =>
 const sortByPrice = (items: Artwork[]) =>
   [...items].sort((a, b) => (b.price_inr ?? 0) - (a.price_inr ?? 0));
 
+const getPrintSectionDetails = (categoryName: string) => {
+  const galleryDetails = categoryDetails[categoryName];
+
+  if (galleryDetails) {
+    return {
+      eyebrow: galleryDetails.eyebrow,
+      description: galleryDetails.description.replace(/work/g, "prints"),
+    };
+  }
+
+  if (categoryName === "Uncategorized") {
+    return {
+      eyebrow: "Print Editions",
+      description:
+        "Available print editions gathered from the studio collection.",
+    };
+  }
+
+  return {
+    eyebrow: "Print Editions",
+    description: `Available print editions from the ${categoryName} collection.`,
+  };
+};
+
 const EmptyCollectionState = ({
   title,
   description,
@@ -109,7 +132,11 @@ const Index = () => {
   >(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
-  const [galleryItems, setGalleryItems] = useState<Artwork[]>([]);
+  const [galleryItems, setGalleryItems] = useState<(Artwork | Print)[]>([]);
+  const [galleryModalTitle, setGalleryModalTitle] = useState("Gallery");
+  const [galleryModalItemType, setGalleryModalItemType] = useState<
+    "artwork" | "print"
+  >("artwork");
 
   useEffect(() => {
     const state = location.state as
@@ -131,34 +158,34 @@ const Index = () => {
     }
   }, [location.state, location.pathname, navigate, setSelectedTab]);
 
-  useEffect(() => {
-    const loadCollectionData = async () => {
-      try {
-        const [artworksResponse, printsResponse] = await Promise.all([
-          fetch(apiUrl("/api/artworks")),
-          fetch(apiUrl("/api/prints")),
-        ]);
+  const loadCollectionData = useCallback(async () => {
+    try {
+      const [artworksResponse, printsResponse] = await Promise.all([
+        fetch(apiUrl("/api/artworks")),
+        fetch(apiUrl("/api/prints")),
+      ]);
 
-        const artworksData = await artworksResponse.json().catch(() => []);
-        const printsData = await printsResponse.json().catch(() => []);
+      const artworksData = await artworksResponse.json().catch(() => []);
+      const printsData = await printsResponse.json().catch(() => []);
 
-        if (!artworksResponse.ok) {
-          throw new Error("Failed to load artworks");
-        }
-
-        if (!printsResponse.ok) {
-          throw new Error("Failed to load prints");
-        }
-
-        setArtworks(Array.isArray(artworksData) ? artworksData : []);
-        setPrints(Array.isArray(printsData) ? printsData : []);
-      } catch (error) {
-        console.error("Failed to load collection data:", error);
+      if (!artworksResponse.ok) {
+        throw new Error("Failed to load artworks");
       }
-    };
 
-    loadCollectionData();
+      if (!printsResponse.ok) {
+        throw new Error("Failed to load prints");
+      }
+
+      setArtworks(Array.isArray(artworksData) ? artworksData : []);
+      setPrints(Array.isArray(printsData) ? printsData : []);
+    } catch (error) {
+      console.error("Failed to load collection data:", error);
+    }
   }, []);
+
+  useEffect(() => {
+    loadCollectionData();
+  }, [loadCollectionData]);
 
   const handleDeleteArtwork = async (id: number) => {
     try {
@@ -182,6 +209,26 @@ const Index = () => {
     }
   };
 
+  const handleDeletePrint = async (id: number) => {
+    try {
+      const response = await fetch(apiUrl(`/api/admin/prints/${id}`), {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to delete print");
+      }
+
+      setPrints((prev) => prev.filter((print) => print.id !== id));
+    } catch (error) {
+      console.error("Failed to delete print:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete print");
+    }
+  };
+
   const handleSaveArtwork = (updatedArtwork: Artwork) => {
     setArtworks((prev) =>
       prev.map((artwork) =>
@@ -201,6 +248,24 @@ const Index = () => {
     );
   };
 
+  const handleSavePrint = async (updatedPrint: Print) => {
+    await loadCollectionData();
+    setPrints((prev) =>
+      prev.map((print) =>
+        print.id === updatedPrint.id
+          ? {
+              ...print,
+              ...updatedPrint,
+              category: updatedPrint.category ?? print.category,
+            }
+          : print,
+      ),
+    );
+    setSelectedItem((prev) =>
+      prev && prev.id === updatedPrint.id ? { ...prev, ...updatedPrint } : prev,
+    );
+  };
+
   const handleOpenArtwork = (artwork: Artwork) => {
     setSelectedItemType("artwork");
     setSelectedItem(artwork);
@@ -210,6 +275,7 @@ const Index = () => {
   const handleOpenPrint = (print: Print) => {
     setSelectedItemType("print");
     setSelectedItem(print);
+    setIsEditing(false);
   };
 
   const artworksByCategory = artworks.reduce(
@@ -222,6 +288,18 @@ const Index = () => {
       return acc;
     },
     {} as Record<string, Artwork[]>,
+  );
+
+  const printsByCategory = prints.reduce(
+    (acc, print) => {
+      const category = print.category || "Uncategorized";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(print);
+      return acc;
+    },
+    {} as Record<string, Print[]>,
   );
 
   const curatedSections: CuratedSection[] = Object.entries(artworksByCategory)
@@ -241,25 +319,25 @@ const Index = () => {
       };
     })
     .filter((section) => section.artworks.length > 0);
-  const availableArtworks = artworks.filter((art) => !art.is_sold);
 
-  const collectionSignals = [
-    {
-      value: String(artworks.length).padStart(2, "0"),
-      label: "Works in rotation",
-      copy: "A living collection shaped by new additions, collector placements, and studio edits.",
-    },
-    {
-      value: String(availableArtworks.length).padStart(2, "0"),
-      label: "Open for inquiry",
-      copy: "Pieces currently available for collectors, commissions, and more focused conversations.",
-    },
-    {
-      value: String(curatedSections.length).padStart(2, "0"),
-      label: "Curated shelves",
-      copy: "Different ways into the work depending on mood, pace, and how you want to browse.",
-    },
-  ];
+  const printSections = Object.entries(printsByCategory)
+    .map(([categoryName, categoryPrints]) => {
+      const details = getPrintSectionDetails(categoryName);
+
+      return {
+        id: `prints-${categoryName.toLowerCase().replace(/\s+/g, "-")}`,
+        eyebrow: details.eyebrow,
+        name: categoryName === "Uncategorized" ? "Prints" : categoryName,
+        description: details.description,
+        artworks:
+          categoryName === "Fresh Arrivals"
+            ? sortByNewest(categoryPrints)
+            : sortByPrice(categoryPrints),
+        initialCount: 4,
+      };
+    })
+    .filter((section) => section.artworks.length > 0);
+  const availableArtworks = artworks.filter((art) => !art.is_sold);
 
   return (
     <Layout>
@@ -279,29 +357,6 @@ const Index = () => {
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 md:pt-8 lg:px-8">
             <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           </div>
-
-          <section className="py-8 sm:py-16 lg:py-20">
-            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
-                {collectionSignals.map((signal) => (
-                  <div
-                    key={signal.label}
-                    className="app-surface border-border/60 bg-card/50 p-4 sm:p-5"
-                  >
-                    <p className="font-display text-3xl font-bold text-foreground sm:text-4xl">
-                      {signal.value}
-                    </p>
-                    <p className="mobile-eyebrow mt-3 text-primary">
-                      {signal.label}
-                    </p>
-                    <p className="mobile-card-copy mt-4 text-muted-foreground sm:text-sm">
-                      {signal.copy}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
           <Tabs
             value={selectedTab}
@@ -336,6 +391,7 @@ const Index = () => {
                 curatedSections.map((section, index) => (
                   <GallerySection
                     key={section.id}
+                    itemType="artwork"
                     category={{
                       name: section.name,
                       artworks: section.artworks,
@@ -354,6 +410,8 @@ const Index = () => {
                     }}
                     onSeeMore={(artworks) => {
                       setGalleryItems(artworks);
+                      setGalleryModalTitle(section.name);
+                      setGalleryModalItemType("artwork");
                       setShowGalleryModal(true);
                     }}
                   />
@@ -368,12 +426,35 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent id="prints" value="print" className="w-full">
-              {prints.length > 0 ? (
-                <PrintsSection
-                  prints={prints}
-                  isAdmin={false}
-                  onOpenPrint={handleOpenPrint}
-                />
+              {printSections.length > 0 ? (
+                printSections.map((section, index) => (
+                  <GallerySection
+                    key={section.id}
+                    itemType="print"
+                    category={{
+                      name: section.name,
+                      artworks: section.artworks,
+                      eyebrow: section.eyebrow,
+                      description: section.description,
+                    }}
+                    initialCount={section.initialCount}
+                    isAdmin={isAdmin}
+                    sectionIndex={index}
+                    onDeleteArtwork={handleDeletePrint}
+                    onOpenArtwork={(print) => handleOpenPrint(print as Print)}
+                    onEditArtwork={(print) => {
+                      setSelectedItemType("print");
+                      setSelectedItem(print as Print);
+                      setIsEditing(true);
+                    }}
+                    onSeeMore={(prints) => {
+                      setGalleryItems(prints as Print[]);
+                      setGalleryModalTitle(section.name);
+                      setGalleryModalItemType("print");
+                      setShowGalleryModal(true);
+                    }}
+                  />
+                ))
               ) : (
                 <EmptyCollectionState
                   eyebrow="Print Collection"
@@ -399,24 +480,33 @@ const Index = () => {
       <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
         <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Gallery</DialogTitle>
+            <DialogTitle>{galleryModalTitle}</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {galleryItems.map((artwork) => (
+            {galleryItems.map((item) => (
               <ArtworkCard
-                key={artwork.id}
-                artwork={artwork}
+                key={item.id}
+                artwork={item}
+                itemType={galleryModalItemType}
                 isAdmin={isAdmin}
-                onDelete={(id) => handleDeleteArtwork(id)}
-                onOpen={(art) => {
+                onDelete={(id) =>
+                  galleryModalItemType === "print"
+                    ? handleDeletePrint(id)
+                    : handleDeleteArtwork(id)
+                }
+                onOpen={(selectedItem) => {
                   setShowGalleryModal(false);
-                  handleOpenArtwork(art);
+                  if (galleryModalItemType === "print") {
+                    handleOpenPrint(selectedItem as Print);
+                  } else {
+                    handleOpenArtwork(selectedItem);
+                  }
                 }}
-                onEdit={(art) => {
+                onEdit={(selectedItem) => {
                   setShowGalleryModal(false);
-                  setSelectedItemType("artwork");
-                  setSelectedItem(art);
+                  setSelectedItemType(galleryModalItemType);
+                  setSelectedItem(selectedItem);
                   setIsEditing(true);
                 }}
               />
@@ -427,13 +517,20 @@ const Index = () => {
 
       <ArtworkModal
         artwork={selectedItem}
-        isAdmin={isEditing && selectedItemType === "artwork"}
+        itemType={selectedItemType ?? "artwork"}
+        isAdmin={isEditing}
         onClose={() => {
           setSelectedItem(null);
           setSelectedItemType(null);
           setIsEditing(false);
         }}
-        onSave={handleSaveArtwork}
+        onSave={(updatedItem) => {
+          if (selectedItemType === "print") {
+            handleSavePrint(updatedItem as Print);
+          } else {
+            handleSaveArtwork(updatedItem);
+          }
+        }}
       />
     </Layout>
   );

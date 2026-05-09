@@ -84,6 +84,7 @@ export function PrintsSection({
               {hasOverflow ? (
                 <ArtworkPreviewCarousel
                   items={prints}
+                  itemType="print"
                   isAdmin={isAdmin}
                   onDelete={onDeletePrint}
                   onOpen={onOpenPrint}
@@ -95,6 +96,7 @@ export function PrintsSection({
                     <ArtworkCard
                       key={print.id}
                       artwork={print}
+                      itemType="print"
                       priority={index < 2}
                       isAdmin={isAdmin}
                       onDelete={(id) => onDeletePrint?.(id)}
@@ -121,6 +123,7 @@ export function PrintsSection({
               <ArtworkCard
                 key={print.id}
                 artwork={print}
+                itemType="print"
                 isAdmin={isAdmin}
                 onDelete={(id) => onDeletePrint?.(id)}
                 // 🔥 CRITICAL FIX: close dialog first

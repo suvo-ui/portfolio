@@ -425,6 +425,7 @@ export default function Admin() {
               price_inr: forSale ? Number(price) : null,
               size,
               for_sale: forSale,
+              is_sold: isSold,
             };
 
       const createRes = await fetch(apiUrl(endpoint), {

@@ -263,7 +263,25 @@ function normalizeCreatePrintPayload(body) {
       field: "for sale",
       defaultValue: false,
     }),
+
+    isSold:
+      parseBoolean(body?.is_sold, {
+        field: "sold",
+        defaultValue: false,
+      }) ?? false,
   };
+
+  if (payload.isSold) {
+    payload.forSale = false;
+  }
+
+  if (payload.forSale) {
+    payload.isSold = false;
+  }
+
+  if (payload.forSale && payload.priceInr === null) {
+    throw new HttpError(400, "Price is required when print is for sale");
+  }
 
   return payload;
 }
@@ -309,6 +327,11 @@ function normalizeUpdatePrintPayload(body) {
           }),
     forSale: parseBoolean(body?.for_sale, {
       field: "for sale",
+      defaultValue: undefined,
+    }),
+
+    isSold: parseBoolean(body?.is_sold, {
+      field: "sold",
       defaultValue: undefined,
     }),
   };
@@ -690,6 +713,7 @@ router.post("/prints", adminAuth, adminArtworkLimiter, async (req, res) => {
           image_url,
           price_inr,
           size,
+          is_sold,
           for_sale
         )
         VALUES (
@@ -699,11 +723,21 @@ router.post("/prints", adminAuth, adminArtworkLimiter, async (req, res) => {
           ${payload.imageUrl},
           ${payload.priceInr},
           ${payload.size},
+          ${payload.isSold},
           ${payload.forSale}
         )
         RETURNING *;
       `;
       const created = createdRows[0];
+
+      const createdWithCategoryRows = await tx`
+        SELECT prints.*, categories.name AS category
+        FROM prints
+        LEFT JOIN categories ON prints.category_id = categories.id
+        WHERE prints.id = ${created.id}
+        LIMIT 1;
+      `;
+      const createdWithCategory = createdWithCategoryRows[0];
 
       await recordAuditEvent(tx, {
         adminId: req.adminId,
@@ -715,10 +749,10 @@ router.post("/prints", adminAuth, adminArtworkLimiter, async (req, res) => {
         req,
       });
 
-      return created;
+      return createdWithCategory;
     });
 
-    return res.json(createdPrint);
+    return res.status(201).json(createdPrint);
   } catch (err) {
     return sendRouteError(res, err, "Failed to create print");
   }
@@ -757,7 +791,17 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
             : existing.price_inr,
         size: payload.size !== undefined ? payload.size : existing.size,
         for_sale: payload.forSale ?? existing.for_sale,
+        is_sold:
+          payload.isSold !== undefined ? payload.isSold : existing.is_sold,
       };
+
+      if (nextPrint.is_sold) {
+        nextPrint.for_sale = false;
+      }
+
+      if (nextPrint.for_sale) {
+        nextPrint.is_sold = false;
+      }
 
       await ensureActiveCategory(tx, nextPrint.category_id);
 
@@ -774,11 +818,21 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
             image_url = ${nextPrint.image_url},
             price_inr = ${nextPrint.price_inr},
             size = ${nextPrint.size},
+            is_sold = ${nextPrint.is_sold},
             for_sale = ${nextPrint.for_sale}
           WHERE id = ${printId}
           RETURNING *;
         `;
       const updated = updatedRows[0];
+
+      const updatedWithCategoryRows = await tx`
+        SELECT prints.*, categories.name AS category
+        FROM prints
+        LEFT JOIN categories ON prints.category_id = categories.id
+        WHERE prints.id = ${updated.id}
+        LIMIT 1;
+      `;
+      const updatedWithCategory = updatedWithCategoryRows[0];
 
       await recordAuditEvent(tx, {
         adminId: req.adminId,
@@ -790,7 +844,7 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
         req,
       });
 
-      return updated;
+      return updatedWithCategory;
     });
 
     return res.json(updatedPrint);
@@ -798,6 +852,75 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
     return sendRouteError(res, err, "Failed to update print");
   }
 });
+
+router.patch(
+  "/prints/:id/sold",
+  adminAuth,
+  adminArtworkLimiter,
+  async (req, res) => {
+    try {
+      const printId = parsePositiveId(req.params.id, "print id");
+      const isSold = parseBoolean(req.body?.is_sold, {
+        field: "sold status",
+        defaultValue: null,
+      });
+
+      if (isSold === null) {
+        throw new HttpError(400, "Sold status is required");
+      }
+
+      const updatedPrint = await sql.begin(async (tx) => {
+        const existingRows = await tx`
+          SELECT *
+          FROM prints
+          WHERE id = ${printId}
+            AND deleted_at IS NULL
+          LIMIT 1
+        `;
+        const existing = existingRows[0] || null;
+
+        if (!existing) {
+          throw new HttpError(404, "Print not found");
+        }
+
+        const updatedRows = await tx`
+          UPDATE prints
+          SET
+            is_sold = ${isSold},
+            for_sale = CASE WHEN ${isSold} THEN FALSE ELSE for_sale END
+          WHERE id = ${printId}
+          RETURNING *
+        `;
+        const updated = updatedRows[0];
+
+        const updatedWithCategoryRows = await tx`
+          SELECT prints.*, categories.name AS category
+          FROM prints
+          LEFT JOIN categories ON prints.category_id = categories.id
+          WHERE prints.id = ${updated.id}
+          LIMIT 1;
+        `;
+        const updatedWithCategory = updatedWithCategoryRows[0];
+
+        await recordAuditEvent(tx, {
+          adminId: req.adminId,
+          action: "print_sold_toggle",
+          entityType: "print",
+          entityId: updated.id,
+          before: existing,
+          after: updated,
+          req,
+        });
+
+        return updatedWithCategory;
+      });
+
+      return res.json(updatedPrint);
+    } catch (err) {
+      return sendRouteError(res, err, "Failed to update sold status");
+    }
+  },
+);
 
 router.delete(
   "/prints/:id",

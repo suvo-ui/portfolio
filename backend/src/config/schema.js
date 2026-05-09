@@ -60,6 +60,26 @@ export function ensureSchemaReady() {
 
       await tx`
         ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS price_inr NUMERIC
+      `;
+
+      await tx`
+        ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS size TEXT
+      `;
+
+      await tx`
+        ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS is_sold BOOLEAN NOT NULL DEFAULT FALSE
+      `;
+
+      await tx`
+        ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS for_sale BOOLEAN NOT NULL DEFAULT FALSE
+      `;
+
+      await tx`
+        ALTER TABLE prints
         ADD COLUMN IF NOT EXISTS source_artwork_id INTEGER REFERENCES artworks(id) ON DELETE SET NULL
       `;
 

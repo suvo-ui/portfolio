@@ -17,7 +17,7 @@ interface Artwork {
   image_url: string;
   description?: string;
   price_inr?: number;
-  is_sold?: boolean;
+  is_sold?: boolean | string | number | null;
   for_sale?: boolean;
 }
 
@@ -30,6 +30,7 @@ interface GalleryCategory {
 
 interface GallerySectionProps {
   category: GalleryCategory;
+  itemType?: "artwork" | "print";
   initialCount?: number;
   isAdmin?: boolean;
   sectionIndex?: number;
@@ -41,6 +42,7 @@ interface GallerySectionProps {
 
 export function GallerySection({
   category,
+  itemType = "artwork",
   initialCount = 4,
   isAdmin = false,
   onDeleteArtwork,
@@ -121,6 +123,7 @@ export function GallerySection({
               {hasOverflow ? (
                 <ArtworkPreviewCarousel
                   items={category.artworks}
+                  itemType={itemType}
                   isAdmin={isAdmin}
                   onDelete={onDeleteArtwork}
                   onOpen={onOpenArtwork}
@@ -132,6 +135,7 @@ export function GallerySection({
                     <ArtworkCard
                       key={artwork.id}
                       artwork={artwork}
+                      itemType={itemType}
                       priority={index < 2}
                       isAdmin={isAdmin}
                       onDelete={(id) => onDeleteArtwork?.(id)}

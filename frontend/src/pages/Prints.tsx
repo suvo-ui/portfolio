@@ -1,11 +1,31 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Layout } from "@/components/Layout";
-import { PrintsSection } from "@/components/PrintsSection";
+import { GallerySection } from "@/components/GallerySection";
 import ArtworkModal from "@/components/ArtworkModal";
 import type { Print } from "@/types/print";
 import { useAuth } from "@/context/AuthContext";
 import { apiUrl } from "@/lib/api";
+
+const sortByNewest = (items: Print[]) => [...items].sort((a, b) => b.id - a.id);
+
+const sortByPrice = (items: Print[]) =>
+  [...items].sort((a, b) => (b.price_inr ?? 0) - (a.price_inr ?? 0));
+
+const getPrintSectionDetails = (categoryName: string) => {
+  if (categoryName === "Uncategorized") {
+    return {
+      eyebrow: "Print Editions",
+      description:
+        "Available print editions gathered from the studio collection.",
+    };
+  }
+
+  return {
+    eyebrow: "Print Editions",
+    description: `Available print editions from the ${categoryName} collection.`,
+  };
+};
 
 export default function Prints() {
   const { isAdmin } = useAuth();
@@ -14,22 +34,22 @@ export default function Prints() {
   const [loading, setLoading] = useState(true);
   const [selectedPrint, setSelectedPrint] = useState<Print | null>(null);
 
-  useEffect(() => {
-    const fetchPrints = async () => {
-      try {
-        const response = await fetch(apiUrl("/api/prints"));
-        if (!response.ok) throw new Error("Failed to fetch prints");
-        const data = await response.json();
-        setPrints(data);
-      } catch (error) {
-        console.error("Error fetching prints:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPrints();
+  const fetchPrints = useCallback(async () => {
+    try {
+      const response = await fetch(apiUrl("/api/prints"));
+      if (!response.ok) throw new Error("Failed to fetch prints");
+      const data = await response.json();
+      setPrints(data);
+    } catch (error) {
+      console.error("Error fetching prints:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPrints();
+  }, [fetchPrints]);
 
   // 🔥 OPEN MODAL
   const handleOpenPrint = (print: Print) => {
@@ -74,26 +94,69 @@ export default function Prints() {
     );
   }
 
+  const printsByCategory = prints.reduce(
+    (acc, print) => {
+      const category = print.category || "Uncategorized";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(print);
+      return acc;
+    },
+    {} as Record<string, Print[]>,
+  );
+
+  const printSections = Object.entries(printsByCategory)
+    .map(([categoryName, categoryPrints]) => {
+      const details = getPrintSectionDetails(categoryName);
+
+      return {
+        id: `prints-${categoryName.toLowerCase().replace(/\s+/g, "-")}`,
+        eyebrow: details.eyebrow,
+        name: categoryName === "Uncategorized" ? "Prints" : categoryName,
+        description: details.description,
+        artworks:
+          categoryName === "Fresh Arrivals"
+            ? sortByNewest(categoryPrints)
+            : sortByPrice(categoryPrints),
+        initialCount: 4,
+      };
+    })
+    .filter((section) => section.artworks.length > 0);
+
   return (
     <Layout>
       <div className="min-h-screen bg-background">
         <div className="pt-16">
-          <PrintsSection
-            prints={prints}
-            isAdmin={isAdmin}
-            onOpenPrint={handleOpenPrint}
-            onEditPrint={handleEditPrint}
-            onDeletePrint={handleDeletePrint}
-          />
+          {printSections.map((section, index) => (
+            <GallerySection
+              key={section.id}
+              itemType="print"
+              category={{
+                name: section.name,
+                artworks: section.artworks,
+                eyebrow: section.eyebrow,
+                description: section.description,
+              }}
+              initialCount={section.initialCount}
+              isAdmin={isAdmin}
+              sectionIndex={index}
+              onOpenArtwork={(print) => handleOpenPrint(print as Print)}
+              onEditArtwork={(print) => handleEditPrint(print as Print)}
+              onDeleteArtwork={handleDeletePrint}
+            />
+          ))}
         </div>
       </div>
 
       {/* 🔥 FIXED MODAL */}
       <ArtworkModal
         artwork={selectedPrint}
+        itemType="print"
         onClose={() => setSelectedPrint(null)}
         isAdmin={isAdmin}
-        onSave={(updatedPrint) => {
+        onSave={async (updatedPrint) => {
+          await fetchPrints();
           setPrints((prev) =>
             prev.map((p) => (p.id === updatedPrint.id ? updatedPrint : p)),
           );

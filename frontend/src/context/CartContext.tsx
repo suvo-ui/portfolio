@@ -8,7 +8,7 @@ import {
 
 export interface CartItem {
   id: string;
-  type: "artwork" | "workshop" | "course";
+  type: "artwork" | "print" | "workshop" | "course";
   title: string;
   price: number;
   image_url?: string;
