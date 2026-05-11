@@ -6,12 +6,15 @@ import {
   ReactNode,
 } from "react";
 
+import type { ImageVariants } from "@/lib/imageVariants";
+
 export interface CartItem {
   id: string;
   type: "artwork" | "print" | "workshop" | "course";
   title: string;
   price: number;
   image_url?: string;
+  image_variants?: ImageVariants | null;
   quantity: number;
   metadata?: Record<string, unknown>;
 }

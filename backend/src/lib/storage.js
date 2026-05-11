@@ -1,6 +1,29 @@
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 
 import { HttpError } from "./http.js";
+
+export const IMAGE_VARIANT_DEFINITIONS = [
+  {
+    key: "thumb",
+    maxDimension: 360,
+    quality: 72,
+  },
+  {
+    key: "card",
+    maxDimension: 900,
+    quality: 78,
+  },
+  {
+    key: "large",
+    maxDimension: 1800,
+    quality: 84,
+  },
+];
+
+export const IMAGE_VARIANT_KEYS = IMAGE_VARIANT_DEFINITIONS.map(
+  (variant) => variant.key,
+);
 
 const SUPPORTED_IMAGE_TYPES = [
   {
@@ -122,6 +145,94 @@ export function buildStorageObjectPath(prefix, extension) {
   const filename = `${randomUUID()}.${extension}`;
 
   return normalizedPrefix ? `${normalizedPrefix}/${filename}` : filename;
+}
+
+function buildStorageVariantObjectPath(prefix, variantKey) {
+  const normalizedPrefix = String(prefix || "").replace(/^\/+|\/+$/g, "");
+  const filename = `${randomUUID()}-${variantKey}.webp`;
+
+  return normalizedPrefix ? `${normalizedPrefix}/${filename}` : filename;
+}
+
+export function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+export async function createOptimizedImageVariants(buffer) {
+  try {
+    const image = sharp(buffer, {
+      limitInputPixels: 40_000_000,
+    }).rotate();
+
+    const entries = await Promise.all(
+      IMAGE_VARIANT_DEFINITIONS.map(async (variant) => {
+        const variantBuffer = await image
+          .clone()
+          .resize({
+            width: variant.maxDimension,
+            height: variant.maxDimension,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .webp({
+            quality: variant.quality,
+            effort: 5,
+          })
+          .toBuffer();
+
+        return [variant.key, variantBuffer];
+      }),
+    );
+
+    return Object.fromEntries(entries);
+  } catch {
+    throw new HttpError(400, "Unable to optimize uploaded image");
+  }
+}
+
+export async function uploadImageVariantsToStorage({
+  supabase,
+  bucketName,
+  prefix,
+  sourceBuffer,
+  cacheControl = "31536000",
+  timeoutMs = 30_000,
+}) {
+  const variantBuffers = await createOptimizedImageVariants(sourceBuffer);
+  const variants = {};
+
+  for (const [variantKey, variantBuffer] of Object.entries(variantBuffers)) {
+    const objectPath = buildStorageVariantObjectPath(prefix, variantKey);
+    const { error } = await withTimeout(
+      supabase.storage.from(bucketName).upload(objectPath, variantBuffer, {
+        contentType: "image/webp",
+        cacheControl,
+        upsert: false,
+      }),
+      timeoutMs,
+      `Supabase ${variantKey} image upload`,
+    );
+
+    if (error) {
+      throw new HttpError(502, error.message || "Image upload failed");
+    }
+
+    const { data } = supabase.storage.from(bucketName).getPublicUrl(objectPath);
+    variants[variantKey] = data.publicUrl;
+  }
+
+  return variants;
 }
 
 export function extractPublicObjectPath(publicUrl, bucketName) {

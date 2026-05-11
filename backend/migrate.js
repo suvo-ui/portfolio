@@ -16,6 +16,33 @@ async function runMigration() {
     `;
 
     await sql`
+      ALTER TABLE artworks
+      ADD COLUMN IF NOT EXISTS image_variants JSONB
+    `;
+
+    await sql`
+      ALTER TABLE prints
+      ADD COLUMN IF NOT EXISTS image_variants JSONB
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS hero_carousel_images (
+        id SERIAL PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        image_variants JSONB,
+        title TEXT,
+        position INTEGER NOT NULL DEFAULT 0,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    await sql`
+      ALTER TABLE hero_carousel_images
+      ADD COLUMN IF NOT EXISTS image_variants JSONB
+    `;
+
+    await sql`
       ALTER TABLE workshops
       ADD COLUMN IF NOT EXISTS completed BOOLEAN NOT NULL DEFAULT FALSE
     `;
@@ -23,6 +50,11 @@ async function runMigration() {
     await sql`
       ALTER TABLE workshops
       ADD COLUMN IF NOT EXISTS venue TEXT
+    `;
+
+    await sql`
+      ALTER TABLE workshops
+      ADD COLUMN IF NOT EXISTS image_variants JSONB
     `;
 
     await ensureSchemaReady();

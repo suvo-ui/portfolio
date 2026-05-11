@@ -411,6 +411,7 @@ export default function Admin() {
               description: artDescription,
               category_id: Number(categoryId),
               image_url: uploadData.url,
+              image_variants: uploadData.image_variants ?? null,
               price_inr: forSale ? Number(price) : null,
               size,
               available_for_print: availableForPrint,
@@ -422,6 +423,7 @@ export default function Admin() {
               description: artDescription,
               category_id: Number(categoryId),
               image_url: uploadData.url,
+              image_variants: uploadData.image_variants ?? null,
               price_inr: forSale ? Number(price) : null,
               size,
               for_sale: forSale,
@@ -658,6 +660,7 @@ export default function Admin() {
 
       const created = await createHeroCarouselImage({
         image_url: uploadData.url,
+        image_variants: uploadData.image_variants ?? null,
         title: artTitle,
         active: true,
       });

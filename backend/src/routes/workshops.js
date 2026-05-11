@@ -8,6 +8,7 @@ import { HttpError, sendRouteError } from "../lib/http.js";
 import {
   buildStorageObjectPath,
   detectUploadedFileType,
+  uploadImageVariantsToStorage,
 } from "../lib/storage.js";
 import {
   optionalString,
@@ -101,6 +102,22 @@ async function uploadWorkshopAsset(file, kind) {
   const bucketName =
     kind === "image" ? WORKSHOP_IMAGE_BUCKET : WORKSHOP_VIDEO_BUCKET;
   const folder = kind === "image" ? "images" : "videos";
+
+  if (kind === "image") {
+    const variants = await uploadImageVariantsToStorage({
+      supabase,
+      bucketName,
+      prefix: folder,
+      sourceBuffer: file.buffer,
+      timeoutMs: SUPABASE_UPLOAD_TIMEOUT_MS,
+    });
+
+    return {
+      url: variants.large,
+      variants,
+    };
+  }
+
   const objectPath = buildStorageObjectPath(folder, detectedType.extension);
 
   const { error } = await withTimeout(
@@ -116,7 +133,11 @@ async function uploadWorkshopAsset(file, kind) {
     throw new HttpError(502, error.message || `${kind} upload failed`);
   }
 
-  return supabase.storage.from(bucketName).getPublicUrl(objectPath).data.publicUrl;
+  return {
+    url: supabase.storage.from(bucketName).getPublicUrl(objectPath).data
+      .publicUrl,
+    variants: null,
+  };
 }
 
 router.get("/", async (req, res) => {
@@ -170,7 +191,7 @@ router.post(
         );
       }
 
-      const [imageUrl, videoUrl] = await Promise.all([
+      const [imageUpload, videoUpload] = await Promise.all([
         imageFile ? uploadWorkshopAsset(imageFile, "image") : null,
         videoFile ? uploadWorkshopAsset(videoFile, "video") : null,
       ]);
@@ -185,6 +206,7 @@ router.post(
             price,
             max_seats,
             image_url,
+            image_variants,
             video_url,
             venue,
             completed
@@ -196,8 +218,9 @@ router.post(
             ${payload.duration},
             ${payload.price},
             ${payload.maxSeats},
-            ${imageUrl},
-            ${videoUrl},
+            ${imageUpload?.url ?? null},
+            ${imageUpload?.variants ? JSON.stringify(imageUpload.variants) : null}::jsonb,
+            ${videoUpload?.url ?? null},
             ${payload.venue},
             FALSE
           )

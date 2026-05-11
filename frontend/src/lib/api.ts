@@ -1,3 +1,5 @@
+import type { ImageVariants } from "@/lib/imageVariants";
+
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 const DEFAULT_API_PORT = "5000";
 
@@ -78,6 +80,7 @@ export async function fetchWithTimeout(
 export interface HeroCarouselImage {
   id: number;
   image_url: string;
+  image_variants?: ImageVariants | null;
   title: string;
   position: number;
   active: boolean;
@@ -94,6 +97,7 @@ export async function fetchHeroCarouselImages(): Promise<HeroCarouselImage[]> {
 
 export async function createHeroCarouselImage(data: {
   image_url: string;
+  image_variants?: ImageVariants | null;
   title: string;
   position?: number;
   active?: boolean;
@@ -116,6 +120,7 @@ export async function updateHeroCarouselImage(
   id: number,
   data: Partial<{
     image_url: string;
+    image_variants: ImageVariants | null;
     title: string;
     position: number;
     active: boolean;

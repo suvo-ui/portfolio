@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS artworks (
   title TEXT NOT NULL,
   description TEXT,
   image_url TEXT NOT NULL,
+  image_variants JSONB,
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   price_inr NUMERIC,
   size TEXT,
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS prints (
   title TEXT NOT NULL,
   description TEXT,
   image_url TEXT NOT NULL,
+  image_variants JSONB,
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   source_artwork_id INTEGER REFERENCES artworks(id) ON DELETE SET NULL,
   price_inr NUMERIC,
@@ -36,6 +38,7 @@ CREATE TABLE IF NOT EXISTS prints (
 );
 
 ALTER TABLE artworks ADD COLUMN IF NOT EXISTS price_inr NUMERIC;
+ALTER TABLE artworks ADD COLUMN IF NOT EXISTS image_variants JSONB;
 ALTER TABLE artworks ADD COLUMN IF NOT EXISTS size TEXT;
 ALTER TABLE artworks ADD COLUMN IF NOT EXISTS is_sold BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE artworks ADD COLUMN IF NOT EXISTS available_for_print BOOLEAN NOT NULL DEFAULT FALSE;
@@ -44,6 +47,7 @@ ALTER TABLE artworks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 
 ALTER TABLE prints ADD COLUMN IF NOT EXISTS price_inr NUMERIC;
+ALTER TABLE prints ADD COLUMN IF NOT EXISTS image_variants JSONB;
 ALTER TABLE prints ADD COLUMN IF NOT EXISTS size TEXT;
 ALTER TABLE prints ADD COLUMN IF NOT EXISTS is_sold BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE prints ADD COLUMN IF NOT EXISTS for_sale BOOLEAN NOT NULL DEFAULT FALSE;
@@ -57,6 +61,7 @@ WHERE source_artwork_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS hero_carousel_images (
   id SERIAL PRIMARY KEY,
   image_url TEXT NOT NULL,
+  image_variants JSONB,
   title TEXT,
   position INTEGER NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -64,6 +69,7 @@ CREATE TABLE IF NOT EXISTS hero_carousel_images (
 );
 
 ALTER TABLE hero_carousel_images DROP COLUMN IF EXISTS description;
+ALTER TABLE hero_carousel_images ADD COLUMN IF NOT EXISTS image_variants JSONB;
 
 ALTER TABLE workshops ADD COLUMN IF NOT EXISTS venue TEXT;
 
@@ -98,6 +104,7 @@ CREATE TABLE IF NOT EXISTS workshops (
   price NUMERIC,
   max_seats INTEGER,
   image_url TEXT,
+  image_variants JSONB,
   video_url TEXT,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   completed BOOLEAN NOT NULL DEFAULT FALSE,
@@ -107,6 +114,7 @@ CREATE TABLE IF NOT EXISTS workshops (
 
 ALTER TABLE workshops ADD COLUMN IF NOT EXISTS completed BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE workshops ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+ALTER TABLE workshops ADD COLUMN IF NOT EXISTS image_variants JSONB;
 
 CREATE TABLE IF NOT EXISTS admin_audit_log (
   id SERIAL PRIMARY KEY,

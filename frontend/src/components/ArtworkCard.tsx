@@ -4,6 +4,7 @@ import { ArrowUpRight, Edit3, ShoppingCart, Trash2 } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
+import type { ImageVariants } from "@/lib/imageVariants";
 import { cn } from "@/lib/utils";
 
 export interface Artwork {
@@ -11,6 +12,7 @@ export interface Artwork {
   title: string;
   description?: string;
   image_url: string;
+  image_variants?: ImageVariants | null;
   category?: string;
   price_inr?: number;
   is_sold?: boolean | string | number | null;
@@ -65,6 +67,7 @@ export function ArtworkCard({
       title: artwork.title,
       price: artwork.price_inr,
       image_url: artwork.image_url,
+      image_variants: artwork.image_variants,
     });
   };
 
@@ -128,6 +131,8 @@ export function ArtworkCard({
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_48%)] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
           <LazyImage
             src={artwork.image_url}
+            imageVariants={artwork.image_variants}
+            variant="card"
             alt={artwork.title}
             priority={priority}
             sizes={

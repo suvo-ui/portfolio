@@ -6,12 +6,14 @@ import LazyImage from "@/components/LazyImage";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/api";
+import type { ImageVariants } from "@/lib/imageVariants";
 
 interface Artwork {
   id: number;
   title: string;
   description?: string | null;
   image_url: string;
+  image_variants?: ImageVariants | null;
   category?: string | null;
   price_inr?: number | null;
   size?: string | null;
@@ -158,6 +160,8 @@ const ArtworkDetail = () => {
                 </div>
                 <LazyImage
                   src={artwork.image_url}
+                  imageVariants={artwork.image_variants}
+                  variant="large"
                   alt={artwork.title}
                   priority
                   sizes="(min-width: 1024px) 58vw, 100vw"

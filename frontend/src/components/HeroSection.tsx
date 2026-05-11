@@ -115,6 +115,8 @@ export function HeroSection({
                     >
                       <LazyImage
                         src={image.image_url}
+                        imageVariants={image.image_variants}
+                        variant="large"
                         alt={image.title}
                         priority={index === 0}
                         sizes="100vw"

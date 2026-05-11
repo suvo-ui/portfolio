@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
+import {
+  buildImageSrcSet,
+  selectImageVariant,
+  type ImageVariantKey,
+  type ImageVariants,
+} from "@/lib/imageVariants";
 import { cn } from "@/lib/utils";
 
 const preconnectedHosts = new Set<string>();
@@ -27,6 +33,9 @@ interface Props {
   alt: string;
   className?: string;
   priority?: boolean;
+  imageVariants?: ImageVariants | null;
+  variant?: ImageVariantKey;
+  responsive?: boolean;
   sizes?: string;
   loading?: "eager" | "lazy";
   decoding?: "async" | "auto" | "sync";
@@ -38,6 +47,9 @@ export default function LazyImage({
   alt,
   className,
   priority = false,
+  imageVariants,
+  variant = "large",
+  responsive = true,
   sizes,
   loading,
   decoding = "async",
@@ -47,18 +59,22 @@ export default function LazyImage({
   const [shouldLoad, setShouldLoad] = useState(priority);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const resolvedSrc = selectImageVariant(src, imageVariants, variant);
+  const resolvedSrcSet = responsive
+    ? buildImageSrcSet(imageVariants)
+    : undefined;
 
   useEffect(() => {
-    if (src) {
-      preconnectImageHost(src);
+    if (resolvedSrc) {
+      preconnectImageHost(resolvedSrc);
     }
-  }, [src]);
+  }, [resolvedSrc]);
 
   useEffect(() => {
     setIsLoaded(false);
     setHasError(false);
     setShouldLoad(priority);
-  }, [priority, src]);
+  }, [priority, resolvedSrc]);
 
   useEffect(() => {
     if (priority || shouldLoad) return;
@@ -100,7 +116,8 @@ export default function LazyImage({
 
       <img
         ref={imgRef}
-        src={shouldLoad ? src : undefined}
+        src={shouldLoad ? resolvedSrc : undefined}
+        srcSet={shouldLoad ? resolvedSrcSet : undefined}
         alt={alt}
         sizes={sizes}
         loading={resolvedLoading}

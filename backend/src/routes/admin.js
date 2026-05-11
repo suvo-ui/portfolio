@@ -11,7 +11,7 @@ import {
   optionalString,
   requireUrl,
 } from "../lib/validation.js";
-import { extractPublicObjectPath } from "../lib/storage.js";
+import { extractPublicObjectPath, IMAGE_VARIANT_KEYS } from "../lib/storage.js";
 import adminAuth from "../middlewares/adminAuth.js";
 import createRateLimiter from "../middlewares/rateLimit.js";
 
@@ -63,6 +63,43 @@ function validateStoredHeroImageUrl(value) {
   return imageUrl;
 }
 
+function validateStoredImageVariants(value, bucketName = "artworks") {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new HttpError(400, "Image variants must be an object");
+  }
+
+  const variants = {};
+
+  for (const key of IMAGE_VARIANT_KEYS) {
+    const rawUrl = value[key];
+    if (rawUrl === undefined || rawUrl === null || rawUrl === "") {
+      continue;
+    }
+
+    const imageUrl = requireUrl(rawUrl, { field: `${key} image URL` });
+
+    if (!extractPublicObjectPath(imageUrl, bucketName)) {
+      throw new HttpError(400, `${key} image URL must point to stored media`);
+    }
+
+    variants[key] = imageUrl;
+  }
+
+  return Object.keys(variants).length > 0 ? variants : null;
+}
+
+function toJsonb(value) {
+  return value ? JSON.stringify(value) : null;
+}
+
 function normalizeCreateHeroPayload(body) {
   return {
     title: requireString(body?.title, {
@@ -70,6 +107,8 @@ function normalizeCreateHeroPayload(body) {
       maxLength: 160,
     }),
     imageUrl: validateStoredHeroImageUrl(body?.image_url),
+    imageVariants:
+      validateStoredImageVariants(body?.image_variants, "artworks") ?? null,
     position:
       parseOptionalNumber(body?.position, {
         field: "position",
@@ -97,6 +136,10 @@ function normalizeUpdateHeroPayload(body) {
       body?.image_url === undefined
         ? undefined
         : validateStoredHeroImageUrl(body.image_url),
+    imageVariants:
+      body?.image_variants === undefined
+        ? undefined
+        : validateStoredImageVariants(body.image_variants, "artworks"),
     position:
       body?.position === undefined
         ? undefined
@@ -126,6 +169,8 @@ function normalizeCreatePayload(body) {
     categoryId: parsePositiveId(body?.category_id, "category id"),
 
     imageUrl: validateStoredArtworkUrl(body?.image_url),
+    imageVariants:
+      validateStoredImageVariants(body?.image_variants, "artworks") ?? null,
 
     priceInr: parseOptionalNumber(body?.price_inr, {
       field: "price",
@@ -202,6 +247,10 @@ function normalizeUpdatePayload(body) {
       body?.image_url === undefined
         ? undefined
         : validateStoredArtworkUrl(body.image_url),
+    imageVariants:
+      body?.image_variants === undefined
+        ? undefined
+        : validateStoredImageVariants(body.image_variants, "artworks"),
 
     priceInr:
       body?.price_inr === undefined
@@ -250,6 +299,8 @@ function normalizeCreatePrintPayload(body) {
     }),
     categoryId: parsePositiveId(body?.category_id, "category id"),
     imageUrl: validateStoredArtworkUrl(body?.image_url),
+    imageVariants:
+      validateStoredImageVariants(body?.image_variants, "artworks") ?? null,
     priceInr: parseOptionalNumber(body?.price_inr, {
       field: "price",
       min: 0,
@@ -310,6 +361,10 @@ function normalizeUpdatePrintPayload(body) {
       body?.image_url === undefined
         ? undefined
         : validateStoredArtworkUrl(body.image_url),
+    imageVariants:
+      body?.image_variants === undefined
+        ? undefined
+        : validateStoredImageVariants(body.image_variants, "artworks"),
     priceInr:
       body?.price_inr === undefined
         ? undefined
@@ -366,6 +421,7 @@ async function syncArtworkPrintRecord(tx, artwork) {
         description = ${artwork.description},
         category_id = ${artwork.category_id},
         image_url = ${artwork.image_url},
+        image_variants = ${toJsonb(artwork.image_variants)}::jsonb,
         price_inr = ${artwork.price_inr},
         size = ${artwork.size},
         for_sale = ${artwork.for_sale},
@@ -381,6 +437,7 @@ async function syncArtworkPrintRecord(tx, artwork) {
       description,
       category_id,
       image_url,
+      image_variants,
       source_artwork_id,
       price_inr,
       size,
@@ -392,6 +449,7 @@ async function syncArtworkPrintRecord(tx, artwork) {
       ${artwork.description},
       ${artwork.category_id},
       ${artwork.image_url},
+      ${toJsonb(artwork.image_variants)}::jsonb,
       ${artwork.id},
       ${artwork.price_inr},
       ${artwork.size},
@@ -414,6 +472,7 @@ router.post("/artworks", adminAuth, adminArtworkLimiter, async (req, res) => {
             description,
             category_id,
             image_url,
+            image_variants,
             price_inr,
             size,
             available_for_print,
@@ -425,6 +484,7 @@ router.post("/artworks", adminAuth, adminArtworkLimiter, async (req, res) => {
             ${payload.description},
             ${payload.categoryId},
             ${payload.imageUrl},
+            ${toJsonb(payload.imageVariants)}::jsonb,
             ${payload.priceInr},
             ${payload.size},
             ${payload.availableForPrint},
@@ -501,6 +561,13 @@ router.put(
           category_id: payload.categoryId ?? existing.category_id,
 
           image_url: payload.imageUrl ?? existing.image_url,
+          image_variants:
+            payload.imageVariants !== undefined
+              ? payload.imageVariants
+              : payload.imageUrl !== undefined &&
+                  payload.imageUrl !== existing.image_url
+                ? null
+                : existing.image_variants,
 
           price_inr:
             payload.priceInr !== undefined
@@ -543,6 +610,7 @@ router.put(
             description = ${nextArtwork.description},
             category_id = ${nextArtwork.category_id},
             image_url = ${nextArtwork.image_url},
+            image_variants = ${toJsonb(nextArtwork.image_variants)}::jsonb,
             price_inr = ${nextArtwork.price_inr},
             size = ${nextArtwork.size},
             available_for_print = ${nextArtwork.available_for_print},
@@ -711,6 +779,7 @@ router.post("/prints", adminAuth, adminArtworkLimiter, async (req, res) => {
           description,
           category_id,
           image_url,
+          image_variants,
           price_inr,
           size,
           is_sold,
@@ -721,6 +790,7 @@ router.post("/prints", adminAuth, adminArtworkLimiter, async (req, res) => {
           ${payload.description},
           ${payload.categoryId},
           ${payload.imageUrl},
+          ${toJsonb(payload.imageVariants)}::jsonb,
           ${payload.priceInr},
           ${payload.size},
           ${payload.isSold},
@@ -785,6 +855,13 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
             : existing.description,
         category_id: payload.categoryId ?? existing.category_id,
         image_url: payload.imageUrl ?? existing.image_url,
+        image_variants:
+          payload.imageVariants !== undefined
+            ? payload.imageVariants
+            : payload.imageUrl !== undefined &&
+                payload.imageUrl !== existing.image_url
+              ? null
+              : existing.image_variants,
         price_inr:
           payload.priceInr !== undefined
             ? payload.priceInr
@@ -816,6 +893,7 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
             description = ${nextPrint.description},
             category_id = ${nextPrint.category_id},
             image_url = ${nextPrint.image_url},
+            image_variants = ${toJsonb(nextPrint.image_variants)}::jsonb,
             price_inr = ${nextPrint.price_inr},
             size = ${nextPrint.size},
             is_sold = ${nextPrint.is_sold},
@@ -991,12 +1069,14 @@ router.post(
         const createdRows = await tx`
           INSERT INTO hero_carousel_images (
             image_url,
+            image_variants,
             title,
             position,
             active
           )
           VALUES (
             ${payload.imageUrl},
+            ${toJsonb(payload.imageVariants)}::jsonb,
             ${payload.title},
             ${payload.position},
             ${payload.active}
@@ -1048,6 +1128,13 @@ router.put(
 
         const nextImage = {
           image_url: payload.imageUrl ?? existing.image_url,
+          image_variants:
+            payload.imageVariants !== undefined
+              ? payload.imageVariants
+              : payload.imageUrl !== undefined &&
+                  payload.imageUrl !== existing.image_url
+                ? null
+                : existing.image_variants,
           title: payload.title ?? existing.title,
           position: payload.position ?? existing.position,
           active: payload.active ?? existing.active,
@@ -1057,6 +1144,7 @@ router.put(
           UPDATE hero_carousel_images
           SET
             image_url = ${nextImage.image_url},
+            image_variants = ${toJsonb(nextImage.image_variants)}::jsonb,
             title = ${nextImage.title},
             position = ${nextImage.position},
             active = ${nextImage.active}

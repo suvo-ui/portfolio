@@ -38,11 +38,17 @@ export function ensureSchemaReady() {
       `;
 
       await tx`
+        ALTER TABLE artworks
+        ADD COLUMN IF NOT EXISTS image_variants JSONB
+      `;
+
+      await tx`
         CREATE TABLE IF NOT EXISTS prints (
           id SERIAL PRIMARY KEY,
           title TEXT NOT NULL,
           description TEXT,
           image_url TEXT NOT NULL,
+          image_variants JSONB,
           category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
           price_inr NUMERIC,
           size TEXT,
@@ -61,6 +67,11 @@ export function ensureSchemaReady() {
       await tx`
         ALTER TABLE prints
         ADD COLUMN IF NOT EXISTS price_inr NUMERIC
+      `;
+
+      await tx`
+        ALTER TABLE prints
+        ADD COLUMN IF NOT EXISTS image_variants JSONB
       `;
 
       await tx`
@@ -92,6 +103,28 @@ export function ensureSchemaReady() {
       await tx`
         ALTER TABLE workshops
         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP
+      `;
+
+      await tx`
+        ALTER TABLE workshops
+        ADD COLUMN IF NOT EXISTS image_variants JSONB
+      `;
+
+      await tx`
+        CREATE TABLE IF NOT EXISTS hero_carousel_images (
+          id SERIAL PRIMARY KEY,
+          image_url TEXT NOT NULL,
+          image_variants JSONB,
+          title TEXT,
+          position INTEGER NOT NULL DEFAULT 0,
+          active BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
+
+      await tx`
+        ALTER TABLE hero_carousel_images
+        ADD COLUMN IF NOT EXISTS image_variants JSONB
       `;
 
       await tx`

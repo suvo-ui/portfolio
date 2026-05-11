@@ -3,6 +3,7 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import LazyImage from "@/components/LazyImage";
 import { useCart } from "@/context/CartContext";
 import {
   Sheet,
@@ -122,8 +123,11 @@ function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
   return (
     <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-lg border border-border/60 bg-card/45 p-3 sm:grid-cols-[88px_minmax(0,1fr)] sm:gap-4 sm:p-4">
       {item.image_url ? (
-        <img
+        <LazyImage
           src={item.image_url}
+          imageVariants={item.image_variants}
+          variant="thumb"
+          responsive={false}
           alt={item.title}
           className="aspect-square h-full w-full rounded object-cover"
         />

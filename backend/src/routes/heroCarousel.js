@@ -1,6 +1,7 @@
 import express from "express";
 import sql from "../config/db.js";
 import { sendRouteError } from "../lib/http.js";
+import adminAuth from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 
@@ -14,11 +15,13 @@ router.get("/", async (req, res) => {
       SELECT
         id,
         image_url,
+        image_variants,
         title,
         position,
         active,
         created_at
       FROM hero_carousel_images
+      WHERE active = TRUE
       ORDER BY position ASC, created_at DESC;
     `;
 
@@ -32,7 +35,7 @@ router.get("/", async (req, res) => {
  * ADMIN: Create hero carousel image
  * Defaults to active = true
  */
-router.post("/", async (req, res) => {
+router.post("/", adminAuth, async (req, res) => {
   try {
     const { image_url, title, position, active } = req.body;
 
@@ -58,6 +61,7 @@ router.post("/", async (req, res) => {
       RETURNING
         id,
         image_url,
+        image_variants,
         title,
         position,
         active,
@@ -73,7 +77,7 @@ router.post("/", async (req, res) => {
 /**
  * ADMIN: Update hero carousel image
  */
-router.put("/:id", async (req, res) => {
+router.put("/:id", adminAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
 
@@ -96,6 +100,7 @@ router.put("/:id", async (req, res) => {
       RETURNING
         id,
         image_url,
+        image_variants,
         title,
         position,
         active,
@@ -117,7 +122,7 @@ router.put("/:id", async (req, res) => {
 /**
  * ADMIN: Delete hero carousel image
  */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
 

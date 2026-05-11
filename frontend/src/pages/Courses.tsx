@@ -22,9 +22,11 @@ import {
 } from "lucide-react";
 
 import { Layout } from "@/components/Layout";
+import LazyImage from "@/components/LazyImage";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { apiUrl } from "@/lib/api";
+import type { ImageVariants } from "@/lib/imageVariants";
 import { cn } from "@/lib/utils";
 import { fadeUp, scaleIn, stagger, hoverLift } from "@/lib/motion";
 
@@ -50,6 +52,7 @@ interface Workshop {
   price?: number | null;
   max_seats?: number | null;
   image_url?: string | null;
+  image_variants?: ImageVariants | null;
   video_url?: string | null;
   venue?: string | null;
   is_active?: boolean;
@@ -172,6 +175,7 @@ export default function Courses() {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [hasRequestedVideo, setHasRequestedVideo] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
 
   type CourseModule = {
@@ -265,26 +269,19 @@ export default function Courses() {
         document
           .getElementById(anchor)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-        if (anchor === "courses" && videoRef.current) {
-          const playAttempt = videoRef.current.play();
-          if (playAttempt && typeof playAttempt.catch === "function") {
-            playAttempt.catch(() => {});
-          }
-        }
       }, 120);
       return () => clearTimeout(tm);
     }
 
     target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [location.pathname, location.hash]);
 
-    if (anchor === "courses" && videoRef.current) {
-      const playAttempt = videoRef.current.play();
-      if (playAttempt && typeof playAttempt.catch === "function") {
-        playAttempt.catch(() => {});
-      }
-    }
-  }, [location.pathname, location.hash, videoUrl]);
+  useEffect(() => {
+    setHasRequestedVideo(false);
+    setIsVideoPlaying(false);
+    setVideoTime(0);
+    setVideoDuration(0);
+  }, [videoUrl]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -371,12 +368,21 @@ export default function Courses() {
   }, [videoUrl]);
 
   const togglePlay = () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !videoUrl) return;
 
     if (isVideoPlaying) {
       videoRef.current.pause();
     } else {
-      videoRef.current.play();
+      if (!hasRequestedVideo) {
+        setHasRequestedVideo(true);
+        videoRef.current.src = videoUrl;
+        videoRef.current.load();
+      }
+
+      const playAttempt = videoRef.current.play();
+      if (playAttempt && typeof playAttempt.catch === "function") {
+        playAttempt.catch(() => {});
+      }
     }
   };
 
@@ -723,7 +729,8 @@ export default function Courses() {
                         <video
                           ref={videoRef}
                           className="h-full w-full object-cover"
-                          src={videoUrl}
+                          src={hasRequestedVideo ? videoUrl : undefined}
+                          preload="none"
                           playsInline
                         />
 
@@ -1332,12 +1339,19 @@ export default function Courses() {
 
                         {/* IMAGE */}
                         {workshop.image_url ? (
-                          <motion.img
-                            src={workshop.image_url}
-                            alt={workshop.title}
-                            className="w-full object-cover transition-transform duration-700 group-hover:scale-105 aspect-[4/3]"
+                          <motion.div
                             variants={scaleIn}
-                          />
+                            className="aspect-[4/3] overflow-hidden"
+                          >
+                            <LazyImage
+                              src={workshop.image_url}
+                              imageVariants={workshop.image_variants}
+                              variant="card"
+                              alt={workshop.title}
+                              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                          </motion.div>
                         ) : (
                           <div className="aspect-[4/3] flex items-center justify-center bg-zinc-800">
                             <p>{workshop.title}</p>

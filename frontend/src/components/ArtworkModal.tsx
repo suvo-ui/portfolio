@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import LazyImage from "@/components/LazyImage";
 import { useCart } from "@/context/CartContext";
 import { apiUrl } from "@/lib/api";
+import type { ImageVariants } from "@/lib/imageVariants";
 
 interface Category {
   id: number;
@@ -14,6 +15,7 @@ interface Artwork {
   title: string;
   description?: string;
   image_url: string;
+  image_variants?: ImageVariants | null;
   price_inr?: number;
   size?: string;
   is_sold?: boolean | string | number | null;
@@ -135,6 +137,7 @@ export default function ArtworkModal({
       title: artwork.title,
       price: artwork.price_inr,
       image_url: artwork.image_url,
+      image_variants: artwork.image_variants,
     });
 
     setCartOpen(true);
@@ -297,6 +300,8 @@ export default function ArtworkModal({
           >
             <LazyImage
               src={artwork.image_url}
+              imageVariants={artwork.image_variants}
+              variant="large"
               alt={artwork.title}
               priority
               sizes="(min-width: 1024px) 55vw, 100vw"
