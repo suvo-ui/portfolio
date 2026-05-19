@@ -2,6 +2,11 @@ import { randomUUID } from "crypto";
 import sharp from "sharp";
 
 import { HttpError } from "./http.js";
+import {
+  extractCloudinaryPublicObjectPath,
+  extractConfiguredPublicObjectPath,
+  uploadPublicMediaObject,
+} from "./mediaStorage.js";
 
 export const IMAGE_VARIANT_DEFINITIONS = [
   {
@@ -214,28 +219,27 @@ export async function uploadImageVariantsToStorage({
 
   for (const [variantKey, variantBuffer] of Object.entries(variantBuffers)) {
     const objectPath = buildStorageVariantObjectPath(prefix, variantKey);
-    const { error } = await withTimeout(
-      supabase.storage.from(bucketName).upload(objectPath, variantBuffer, {
+    const uploaded = await withTimeout(
+      uploadPublicMediaObject({
+        supabase,
+        bucketName,
+        objectPath,
+        buffer: variantBuffer,
         contentType: "image/webp",
         cacheControl,
         upsert: false,
       }),
       timeoutMs,
-      `Supabase ${variantKey} image upload`,
+      `Media ${variantKey} image upload`,
     );
 
-    if (error) {
-      throw new HttpError(502, error.message || "Image upload failed");
-    }
-
-    const { data } = supabase.storage.from(bucketName).getPublicUrl(objectPath);
-    variants[variantKey] = data.publicUrl;
+    variants[variantKey] = uploaded.publicUrl;
   }
 
   return variants;
 }
 
-export function extractPublicObjectPath(publicUrl, bucketName) {
+export function extractSupabasePublicObjectPath(publicUrl, bucketName) {
   try {
     const url = new URL(publicUrl);
     const configuredSupabaseUrl = process.env.SUPABASE_URL?.trim();
@@ -259,4 +263,12 @@ export function extractPublicObjectPath(publicUrl, bucketName) {
   } catch {
     return null;
   }
+}
+
+export function extractPublicObjectPath(publicUrl, bucketName) {
+  return (
+    extractCloudinaryPublicObjectPath(publicUrl, bucketName) ||
+    extractConfiguredPublicObjectPath(publicUrl, bucketName) ||
+    extractSupabasePublicObjectPath(publicUrl, bucketName)
+  );
 }

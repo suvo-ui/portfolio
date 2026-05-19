@@ -12,7 +12,7 @@ import createRateLimiter from "../middlewares/rateLimit.js";
 
 const router = express.Router();
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-const SUPABASE_UPLOAD_TIMEOUT_MS = 30_000;
+const MEDIA_UPLOAD_TIMEOUT_MS = 30_000;
 const adminUploadLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   max: 12,
@@ -55,7 +55,7 @@ router.post("/", adminAuth, adminUploadLimiter, async (req, res) => {
       bucketName: "artworks",
       prefix: "artworks",
       sourceBuffer: req.file.buffer,
-      timeoutMs: SUPABASE_UPLOAD_TIMEOUT_MS,
+      timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS,
     });
 
     return res.json({

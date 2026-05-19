@@ -4,7 +4,13 @@ import multer from "multer";
 import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
 import { recordAuditEvent } from "../lib/audit.js";
-import { HttpError, sendRouteError } from "../lib/http.js";
+import { sendRouteError } from "../lib/http.js";
+import {
+  getConfiguredPublicUrlForKey,
+  getSupabasePublicUrl,
+  isExternalMediaStorageEnabled,
+  uploadPublicMediaObject,
+} from "../lib/mediaStorage.js";
 import {
   buildStorageObjectPath,
   detectUploadedFileType,
@@ -14,9 +20,10 @@ import adminAuth from "../middlewares/adminAuth.js";
 import createRateLimiter from "../middlewares/rateLimit.js";
 
 const router = express.Router();
-const COURSE_VIDEO_BUCKET = "course vids";
+const COURSE_VIDEO_SUPABASE_BUCKET = "course vids";
+const COURSE_VIDEO_MEDIA_BUCKET = "course-vids";
 const MAX_COURSE_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
-const SUPABASE_UPLOAD_TIMEOUT_MS = 30_000;
+const MEDIA_UPLOAD_TIMEOUT_MS = 30_000;
 const adminCourseLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   max: 10,
@@ -63,11 +70,21 @@ function buildCourseResponse(course) {
     return null;
   }
 
-  const videoUrl = course.video_path
-    ? supabase.storage
-        .from(COURSE_VIDEO_BUCKET)
-        .getPublicUrl(course.video_path).data.publicUrl
-    : null;
+  let videoUrl = null;
+
+  if (course.video_path) {
+    if (/^https?:\/\//i.test(course.video_path)) {
+      videoUrl = course.video_path;
+    } else if (course.video_path.startsWith(`${COURSE_VIDEO_MEDIA_BUCKET}/`)) {
+      videoUrl = getConfiguredPublicUrlForKey(course.video_path);
+    } else {
+      videoUrl = getSupabasePublicUrl(
+        supabase,
+        COURSE_VIDEO_SUPABASE_BUCKET,
+        course.video_path,
+      );
+    }
+  }
 
   return {
     ...course,
@@ -106,23 +123,28 @@ router.put(
       if (req.file) {
         const detectedType = detectUploadedFileType(req.file, "video");
         newVideoPath = buildStorageObjectPath("course", detectedType.extension);
+        const mediaBucketName = isExternalMediaStorageEnabled()
+          ? COURSE_VIDEO_MEDIA_BUCKET
+          : COURSE_VIDEO_SUPABASE_BUCKET;
 
-        const { error } = await withTimeout(
-          supabase.storage.from(COURSE_VIDEO_BUCKET).upload(
-            newVideoPath,
-            req.file.buffer,
-            {
-              contentType: detectedType.contentType,
-              upsert: false,
-            },
-          ),
-          SUPABASE_UPLOAD_TIMEOUT_MS,
-          "Supabase course video upload",
+        const uploaded = await withTimeout(
+          uploadPublicMediaObject({
+            supabase,
+            bucketName: mediaBucketName,
+            objectPath: newVideoPath,
+            buffer: req.file.buffer,
+            contentType: detectedType.contentType,
+            cacheControl: "31536000",
+            upsert: false,
+          }),
+          MEDIA_UPLOAD_TIMEOUT_MS,
+          "Course video upload",
         );
 
-        if (error) {
-          throw new HttpError(502, error.message || "Course video upload failed");
-        }
+        newVideoPath =
+          uploaded.driver === "supabase"
+            ? uploaded.objectKey
+            : uploaded.publicUrl;
       }
 
       const updatedCourse = await sql.begin(async (tx) => {

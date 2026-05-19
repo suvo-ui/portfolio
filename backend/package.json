@@ -6,15 +6,21 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "backfill:image-variants": "node src/scripts/backfillImageVariants.js"
+    "backfill:image-variants": "node src/scripts/backfillImageVariants.js",
+    "migrate:media-cloudinary": "node src/scripts/migrateSupabaseMediaToCloudinary.js",
+    "migrate:media-b2": "node src/scripts/migrateSupabaseMediaToS3Provider.js",
+    "migrate:media-s3": "node src/scripts/migrateSupabaseMediaToS3Provider.js",
+    "migrate:media-r2": "node src/scripts/migrateSupabaseMediaToS3Provider.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1048.0",
     "@supabase/supabase-js": "^2.91.0",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

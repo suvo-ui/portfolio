@@ -5,6 +5,7 @@ import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
 import { recordAuditEvent } from "../lib/audit.js";
 import { HttpError, sendRouteError } from "../lib/http.js";
+import { uploadPublicMediaObject } from "../lib/mediaStorage.js";
 import {
   buildStorageObjectPath,
   detectUploadedFileType,
@@ -24,7 +25,7 @@ import createRateLimiter from "../middlewares/rateLimit.js";
 const router = express.Router();
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
-const SUPABASE_UPLOAD_TIMEOUT_MS = 30_000;
+const MEDIA_UPLOAD_TIMEOUT_MS = 30_000;
 const WORKSHOP_IMAGE_BUCKET = "workshop-image";
 const WORKSHOP_VIDEO_BUCKET = "workshop-videos";
 const adminWorkshopLimiter = createRateLimiter({
@@ -109,7 +110,7 @@ async function uploadWorkshopAsset(file, kind) {
       bucketName,
       prefix: folder,
       sourceBuffer: file.buffer,
-      timeoutMs: SUPABASE_UPLOAD_TIMEOUT_MS,
+      timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS,
     });
 
     return {
@@ -120,22 +121,22 @@ async function uploadWorkshopAsset(file, kind) {
 
   const objectPath = buildStorageObjectPath(folder, detectedType.extension);
 
-  const { error } = await withTimeout(
-    supabase.storage.from(bucketName).upload(objectPath, file.buffer, {
+  const uploaded = await withTimeout(
+    uploadPublicMediaObject({
+      supabase,
+      bucketName,
+      objectPath,
+      buffer: file.buffer,
       contentType: detectedType.contentType,
+      cacheControl: "31536000",
       upsert: false,
     }),
-    SUPABASE_UPLOAD_TIMEOUT_MS,
-    `Supabase ${kind} upload`,
+    MEDIA_UPLOAD_TIMEOUT_MS,
+    `Workshop ${kind} upload`,
   );
 
-  if (error) {
-    throw new HttpError(502, error.message || `${kind} upload failed`);
-  }
-
   return {
-    url: supabase.storage.from(bucketName).getPublicUrl(objectPath).data
-      .publicUrl,
+    url: uploaded.publicUrl,
     variants: null,
   };
 }
