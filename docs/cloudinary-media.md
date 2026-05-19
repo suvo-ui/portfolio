@@ -43,4 +43,10 @@ After reviewing the planned rows, run the real migration:
 $env:DRY_RUN='0'; npm.cmd run migrate:media-cloudinary
 ```
 
+After the migration completes, verify there are no remaining Supabase media references before deleting buckets:
+
+```powershell
+npm.cmd run verify:media-cloudinary
+```
+
 Leave Supabase Storage files in place until the live site has been verified.
