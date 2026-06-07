@@ -5,6 +5,14 @@ import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
 import { recordAuditEvent } from "../lib/audit.js";
 import { HttpError, sendRouteError } from "../lib/http.js";
+import {
+  cancelMediaCleanupJobs,
+  enqueueMediaCleanupJobs,
+} from "../lib/mediaCleanup.js";
+import {
+  collectStoredImageUrls,
+  getPreferredImageVariantUrl,
+} from "../lib/imageVariants.js";
 import { uploadPublicMediaObject } from "../lib/mediaStorage.js";
 import {
   buildStorageObjectPath,
@@ -112,9 +120,14 @@ async function uploadWorkshopAsset(file, kind) {
       sourceBuffer: file.buffer,
       timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS,
     });
+    const imageUrl = getPreferredImageVariantUrl(variants, "large");
+
+    if (!imageUrl) {
+      throw new HttpError(502, "Workshop image upload completed without a URL");
+    }
 
     return {
-      url: variants.large,
+      url: imageUrl,
       variants,
     };
   }
@@ -197,6 +210,27 @@ router.post(
         videoFile ? uploadWorkshopAsset(videoFile, "video") : null,
       ]);
 
+      if (imageUpload) {
+        await enqueueMediaCleanupJobs(sql, {
+          bucketName: WORKSHOP_IMAGE_BUCKET,
+          publicUrls: collectStoredImageUrls({
+            image_url: imageUpload.url,
+            image_variants: imageUpload.variants,
+          }),
+          resourceType: "image",
+          reason: "unattached_upload",
+        });
+      }
+
+      if (videoUpload) {
+        await enqueueMediaCleanupJobs(sql, {
+          bucketName: WORKSHOP_VIDEO_BUCKET,
+          publicUrls: [videoUpload.url],
+          resourceType: "video",
+          reason: "unattached_upload",
+        });
+      }
+
       const createdWorkshop = await sql.begin(async (tx) => {
         const createdRows = await tx`
           INSERT INTO workshops (
@@ -228,6 +262,16 @@ router.post(
           RETURNING *
         `;
         const created = createdRows[0];
+
+        await cancelMediaCleanupJobs(tx, {
+          bucketName: WORKSHOP_IMAGE_BUCKET,
+          publicUrls: collectStoredImageUrls(created),
+        });
+
+        await cancelMediaCleanupJobs(tx, {
+          bucketName: WORKSHOP_VIDEO_BUCKET,
+          publicUrls: [created.video_url],
+        });
 
         await recordAuditEvent(tx, {
           adminId: req.adminId,
@@ -347,6 +391,20 @@ router.delete(
           RETURNING *
         `;
         const deletedWorkshop = deletedRows[0];
+
+        await enqueueMediaCleanupJobs(tx, {
+          bucketName: WORKSHOP_IMAGE_BUCKET,
+          publicUrls: collectStoredImageUrls(deletedWorkshop),
+          resourceType: "image",
+          reason: "workshop_deleted",
+        });
+
+        await enqueueMediaCleanupJobs(tx, {
+          bucketName: WORKSHOP_VIDEO_BUCKET,
+          publicUrls: [deletedWorkshop.video_url],
+          resourceType: "video",
+          reason: "workshop_deleted",
+        });
 
         await recordAuditEvent(tx, {
           adminId: req.adminId,

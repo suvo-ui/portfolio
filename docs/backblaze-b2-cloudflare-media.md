@@ -77,6 +77,11 @@ Edge TTL:
 The backend writes uploaded media with long `Cache-Control` headers, so
 Cloudflare can cache the portfolio assets aggressively.
 
+Uploaded images are optimized before storage. The admin browser first attempts
+to send a static WebP capped at 2400px wide by 3600px tall, then the backend
+creates `thumb`, `card`, and `large` WebP variants with stored width, height,
+and byte metadata for accurate responsive `srcset` delivery.
+
 ## 5. Backend Environment
 
 Set these values locally and in production:
@@ -127,3 +132,30 @@ curl.exe -I https://media.example.com/artworks/example.webp
 
 Look for Cloudflare response headers such as `cf-cache-status`, and confirm the
 URL returns `200`.
+
+## 8. Cleanup Cron
+
+Uploads are queued for cleanup until they are attached to an artwork, print,
+hero image, or workshop. Deleted or replaced media is kept for a 30-day grace
+period, then the cleanup script deletes only files with no active database
+reference.
+
+Run a dry run first:
+
+```powershell
+cd backend
+$env:DRY_RUN='1'; npm.cmd run cleanup:media
+```
+
+Schedule the real command daily:
+
+```powershell
+$env:DRY_RUN='0'; npm.cmd run cleanup:media
+```
+
+To upgrade existing `image_variants` rows from URL strings to metadata objects,
+run:
+
+```powershell
+npm.cmd run backfill:image-variants
+```

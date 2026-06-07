@@ -129,6 +129,25 @@ CREATE TABLE IF NOT EXISTS admin_audit_log (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS media_cleanup_jobs (
+  id SERIAL PRIMARY KEY,
+  public_url TEXT NOT NULL,
+  bucket_name TEXT NOT NULL,
+  resource_type TEXT NOT NULL DEFAULT 'image',
+  reason TEXT NOT NULL,
+  not_before TIMESTAMP NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  processed_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS media_cleanup_jobs_pending_url_unique
+ON media_cleanup_jobs (public_url, bucket_name)
+WHERE status = 'pending';
+
 CREATE TABLE IF NOT EXISTS contact_requests (
   id SERIAL PRIMARY KEY,
   request_type TEXT NOT NULL,

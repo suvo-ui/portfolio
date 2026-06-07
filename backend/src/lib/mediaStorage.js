@@ -1,4 +1,8 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { v2 as cloudinary } from "cloudinary";
 
 import { HttpError } from "./http.js";
@@ -8,7 +12,7 @@ const B2_DRIVER = "b2";
 const CLOUDINARY_DRIVER = "cloudinary";
 const DEFAULT_DRIVER = "supabase";
 
-let s3CompatibleClient;
+const s3CompatibleClients = new Map();
 let cloudinaryConfigured = false;
 
 function trimSlashes(value) {
@@ -59,8 +63,8 @@ function parseB2Region(endpoint) {
   }
 }
 
-function getS3CompatibleConfig() {
-  if (getMediaStorageDriver() === B2_DRIVER) {
+function getS3CompatibleConfig(driver = getMediaStorageDriver()) {
+  if (driver === B2_DRIVER) {
     const endpoint = trimTrailingSlash(requireEnv("B2_S3_ENDPOINT"));
     const region = process.env.B2_REGION?.trim() || parseB2Region(endpoint);
 
@@ -95,21 +99,24 @@ function getS3CompatibleConfig() {
   };
 }
 
-function getS3CompatibleClient() {
-  if (!s3CompatibleClient) {
-    const config = getS3CompatibleConfig();
-    s3CompatibleClient = new S3Client({
-      region: config.region,
-      endpoint: config.endpoint,
-      forcePathStyle: true,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
-    });
+function getS3CompatibleClient(driver = getMediaStorageDriver()) {
+  if (!s3CompatibleClients.has(driver)) {
+    const config = getS3CompatibleConfig(driver);
+    s3CompatibleClients.set(
+      driver,
+      new S3Client({
+        region: config.region,
+        endpoint: config.endpoint,
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: config.accessKeyId,
+          secretAccessKey: config.secretAccessKey,
+        },
+      }),
+    );
   }
 
-  return s3CompatibleClient;
+  return s3CompatibleClients.get(driver);
 }
 
 function configureCloudinary() {
@@ -193,6 +200,27 @@ function uploadBufferToCloudinary({ objectKey, buffer, contentType }) {
   });
 }
 
+function deleteCloudinaryObject({ objectKey, resourceType }) {
+  configureCloudinary();
+
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.destroy(
+      stripFileExtension(objectKey),
+      {
+        resource_type: resourceType || "image",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      },
+    );
+  });
+}
+
 export function extractCloudinaryPublicObjectPath(publicUrl, bucketName) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
 
@@ -239,46 +267,91 @@ export function extractCloudinaryPublicObjectPath(publicUrl, bucketName) {
   }
 }
 
-export function extractConfiguredPublicObjectPath(publicUrl, bucketName) {
-  const publicBaseUrl =
-    process.env.B2_PUBLIC_BASE_URL?.trim() ||
-    process.env.R2_PUBLIC_BASE_URL?.trim();
-
-  if (!publicBaseUrl) {
-    return null;
-  }
+function extractConfiguredPublicObjectInfo(publicUrl, bucketName) {
+  const candidates = [
+    {
+      driver: B2_DRIVER,
+      publicBaseUrl: process.env.B2_PUBLIC_BASE_URL?.trim(),
+    },
+    {
+      driver: R2_DRIVER,
+      publicBaseUrl: process.env.R2_PUBLIC_BASE_URL?.trim(),
+    },
+  ].filter((candidate) => candidate.publicBaseUrl);
 
   try {
+    for (const candidate of candidates) {
+      const url = new URL(publicUrl);
+      const baseUrl = new URL(candidate.publicBaseUrl);
+
+      if (url.origin !== baseUrl.origin) {
+        continue;
+      }
+
+      const basePath = trimSlashes(baseUrl.pathname);
+      const fullPath = decodeURIComponent(trimSlashes(url.pathname));
+      const relativePath =
+        basePath && fullPath.startsWith(`${basePath}/`)
+          ? fullPath.slice(basePath.length + 1)
+          : basePath
+            ? null
+            : fullPath;
+
+      if (!relativePath) {
+        continue;
+      }
+
+      const bucketPrefix = trimSlashes(bucketName);
+      const expectedPrefix = bucketPrefix ? `${bucketPrefix}/` : "";
+
+      if (expectedPrefix && !relativePath.startsWith(expectedPrefix)) {
+        continue;
+      }
+
+      const objectPath = expectedPrefix
+        ? relativePath.slice(expectedPrefix.length) || null
+        : relativePath;
+
+      if (objectPath) {
+        return {
+          driver: candidate.driver,
+          objectPath,
+        };
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function extractConfiguredPublicObjectPath(publicUrl, bucketName) {
+  return extractConfiguredPublicObjectInfo(publicUrl, bucketName)?.objectPath ||
+    null;
+}
+
+export function extractSupabasePublicObjectPath(publicUrl, bucketName) {
+  try {
     const url = new URL(publicUrl);
-    const baseUrl = new URL(publicBaseUrl);
+    const configuredSupabaseUrl = process.env.SUPABASE_URL?.trim();
 
-    if (url.origin !== baseUrl.origin) {
+    if (configuredSupabaseUrl) {
+      const supabaseUrl = new URL(configuredSupabaseUrl);
+      if (url.host !== supabaseUrl.host) {
+        return null;
+      }
+    }
+
+    const bucketSegment = encodeURIComponent(bucketName);
+    const prefix = `/storage/v1/object/public/${bucketSegment}/`;
+
+    if (!url.pathname.startsWith(prefix)) {
       return null;
     }
 
-    const basePath = trimSlashes(baseUrl.pathname);
-    const fullPath = decodeURIComponent(trimSlashes(url.pathname));
-    const relativePath =
-      basePath && fullPath.startsWith(`${basePath}/`)
-        ? fullPath.slice(basePath.length + 1)
-        : basePath
-          ? null
-          : fullPath;
-
-    if (!relativePath) {
-      return null;
-    }
-
-    const bucketPrefix = trimSlashes(bucketName);
-    const expectedPrefix = bucketPrefix ? `${bucketPrefix}/` : "";
-
-    if (expectedPrefix && !relativePath.startsWith(expectedPrefix)) {
-      return null;
-    }
-
-    return expectedPrefix
-      ? relativePath.slice(expectedPrefix.length) || null
-      : relativePath;
+    const objectPath = decodeURIComponent(url.pathname.slice(prefix.length));
+    return objectPath || null;
   } catch {
     return null;
   }
@@ -360,6 +433,87 @@ export async function uploadPublicMediaObject({
     publicUrl: supabase.storage.from(bucketName).getPublicUrl(objectPath).data
       .publicUrl,
   };
+}
+
+export async function deletePublicMediaObject({
+  supabase,
+  bucketName,
+  publicUrl,
+  resourceType = "image",
+}) {
+  if (!publicUrl) {
+    return { deleted: false, reason: "empty_url" };
+  }
+
+  const configuredObjectInfo = extractConfiguredPublicObjectInfo(
+    publicUrl,
+    bucketName,
+  );
+
+  if (configuredObjectInfo) {
+    const config = getS3CompatibleConfig(configuredObjectInfo.driver);
+    const objectKey = buildProviderObjectKey(
+      bucketName,
+      configuredObjectInfo.objectPath,
+    );
+
+    await getS3CompatibleClient(config.driver).send(
+      new DeleteObjectCommand({
+        Bucket: config.bucketName,
+        Key: objectKey,
+      }),
+    );
+
+    return {
+      deleted: true,
+      driver: config.driver,
+      objectPath: configuredObjectInfo.objectPath,
+      objectKey,
+    };
+  }
+
+  const cloudinaryObjectPath = extractCloudinaryPublicObjectPath(
+    publicUrl,
+    bucketName,
+  );
+
+  if (cloudinaryObjectPath) {
+    const objectKey = buildProviderObjectKey(bucketName, cloudinaryObjectPath);
+    await deleteCloudinaryObject({ objectKey, resourceType });
+
+    return {
+      deleted: true,
+      driver: CLOUDINARY_DRIVER,
+      objectPath: cloudinaryObjectPath,
+      objectKey,
+    };
+  }
+
+  if (supabase) {
+    const supabaseObjectPath = extractSupabasePublicObjectPath(
+      publicUrl,
+      bucketName,
+    );
+
+    if (supabaseObjectPath) {
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .remove([supabaseObjectPath]);
+
+      if (error) {
+        throw new HttpError(error.statusCode || 502, error.message);
+      }
+
+      return {
+        deleted: true,
+        driver: DEFAULT_DRIVER,
+        objectPath: supabaseObjectPath,
+        objectKey: supabaseObjectPath,
+      };
+    }
+  }
+
+  return { deleted: false, reason: "unrecognized_url" };
 }
 
 export function getSupabasePublicUrl(supabase, bucketName, objectPath) {

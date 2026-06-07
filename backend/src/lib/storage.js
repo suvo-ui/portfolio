@@ -3,25 +3,33 @@ import sharp from "sharp";
 
 import { HttpError } from "./http.js";
 import {
+  deletePublicMediaObject,
   extractCloudinaryPublicObjectPath,
   extractConfiguredPublicObjectPath,
+  extractSupabasePublicObjectPath,
   uploadPublicMediaObject,
 } from "./mediaStorage.js";
+
+export {
+  extractCloudinaryPublicObjectPath,
+  extractConfiguredPublicObjectPath,
+  extractSupabasePublicObjectPath,
+};
 
 export const IMAGE_VARIANT_DEFINITIONS = [
   {
     key: "thumb",
-    maxDimension: 360,
+    width: 360,
     quality: 72,
   },
   {
     key: "card",
-    maxDimension: 900,
+    width: 900,
     quality: 78,
   },
   {
     key: "large",
-    maxDimension: 1800,
+    width: 1800,
     quality: 84,
   },
 ];
@@ -182,11 +190,10 @@ export async function createOptimizedImageVariants(buffer) {
 
     const entries = await Promise.all(
       IMAGE_VARIANT_DEFINITIONS.map(async (variant) => {
-        const variantBuffer = await image
+        const { data, info } = await image
           .clone()
           .resize({
-            width: variant.maxDimension,
-            height: variant.maxDimension,
+            width: variant.width,
             fit: "inside",
             withoutEnlargement: true,
           })
@@ -194,9 +201,17 @@ export async function createOptimizedImageVariants(buffer) {
             quality: variant.quality,
             effort: 5,
           })
-          .toBuffer();
+          .toBuffer({ resolveWithObject: true });
 
-        return [variant.key, variantBuffer];
+        return [
+          variant.key,
+          {
+            buffer: data,
+            width: info.width,
+            height: info.height,
+            bytes: data.length,
+          },
+        ];
       }),
     );
 
@@ -213,56 +228,65 @@ export async function uploadImageVariantsToStorage({
   sourceBuffer,
   cacheControl = "31536000",
   timeoutMs = 30_000,
+  uploadObject = uploadPublicMediaObject,
+  deleteObject = deletePublicMediaObject,
 }) {
-  const variantBuffers = await createOptimizedImageVariants(sourceBuffer);
-  const variants = {};
+  const variantOutputs = await createOptimizedImageVariants(sourceBuffer);
+  const uploads = await Promise.allSettled(
+    Object.entries(variantOutputs).map(async ([variantKey, variant]) => {
+      const objectPath = buildStorageVariantObjectPath(prefix, variantKey);
+      const uploaded = await withTimeout(
+        uploadObject({
+          supabase,
+          bucketName,
+          objectPath,
+          buffer: variant.buffer,
+          contentType: "image/webp",
+          cacheControl,
+          upsert: false,
+        }),
+        timeoutMs,
+        `Media ${variantKey} image upload`,
+      );
 
-  for (const [variantKey, variantBuffer] of Object.entries(variantBuffers)) {
-    const objectPath = buildStorageVariantObjectPath(prefix, variantKey);
-    const uploaded = await withTimeout(
-      uploadPublicMediaObject({
-        supabase,
-        bucketName,
-        objectPath,
-        buffer: variantBuffer,
-        contentType: "image/webp",
-        cacheControl,
-        upsert: false,
-      }),
-      timeoutMs,
-      `Media ${variantKey} image upload`,
+      return {
+        key: variantKey,
+        value: {
+          url: uploaded.publicUrl,
+          width: variant.width,
+          height: variant.height,
+          bytes: variant.bytes,
+        },
+      };
+    }),
+  );
+
+  const failedUpload = uploads.find((result) => result.status === "rejected");
+
+  if (failedUpload) {
+    await Promise.allSettled(
+      uploads
+        .filter((result) => result.status === "fulfilled")
+        .map((result) =>
+          deleteObject({
+            supabase,
+            bucketName,
+            publicUrl: result.value.value.url,
+            resourceType: "image",
+          }),
+        ),
     );
 
-    variants[variantKey] = uploaded.publicUrl;
+    throw failedUpload.reason;
+  }
+
+  const variants = {};
+
+  for (const result of uploads) {
+    variants[result.value.key] = result.value.value;
   }
 
   return variants;
-}
-
-export function extractSupabasePublicObjectPath(publicUrl, bucketName) {
-  try {
-    const url = new URL(publicUrl);
-    const configuredSupabaseUrl = process.env.SUPABASE_URL?.trim();
-
-    if (configuredSupabaseUrl) {
-      const supabaseUrl = new URL(configuredSupabaseUrl);
-      if (url.host !== supabaseUrl.host) {
-        return null;
-      }
-    }
-
-    const bucketSegment = encodeURIComponent(bucketName);
-    const prefix = `/storage/v1/object/public/${bucketSegment}/`;
-
-    if (!url.pathname.startsWith(prefix)) {
-      return null;
-    }
-
-    const objectPath = decodeURIComponent(url.pathname.slice(prefix.length));
-    return objectPath || null;
-  } catch {
-    return null;
-  }
 }
 
 export function extractPublicObjectPath(publicUrl, bucketName) {

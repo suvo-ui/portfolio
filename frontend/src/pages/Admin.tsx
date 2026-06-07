@@ -27,6 +27,7 @@ import {
   deleteHeroCarouselImage,
   type HeroCarouselImage,
 } from "@/lib/api";
+import { optimizeImageForUpload } from "@/lib/optimizeImageUpload";
 import { cn } from "@/lib/utils";
 
 interface Category {
@@ -381,8 +382,9 @@ export default function Admin() {
     if (!file || !artTitle || !categoryId || (forSale && !price)) return;
     setLoading(true);
     try {
+      const uploadFile = await optimizeImageForUpload(file);
       const fd = new FormData();
-      fd.append("image", file);
+      fd.append("image", uploadFile);
       const uploadRes = await fetchWithTimeout(
         apiUrl("/api/upload"),
         {
@@ -605,7 +607,7 @@ export default function Admin() {
       fd.append("price", wsPrice);
       fd.append("max_seats", wsSeats);
       fd.append("venue", wsVenue);
-      if (wsImage) fd.append("image", wsImage);
+      if (wsImage) fd.append("image", await optimizeImageForUpload(wsImage));
       if (wsVideo) fd.append("video", wsVideo);
       const res = await fetch(apiUrl("/api/workshops"), {
         method: "POST",
@@ -637,8 +639,9 @@ export default function Admin() {
     if (!file || !artTitle) return;
     setHeroLoading(true);
     try {
+      const uploadFile = await optimizeImageForUpload(file);
       const fd = new FormData();
-      fd.append("image", file);
+      fd.append("image", uploadFile);
       const uploadRes = await fetchWithTimeout(
         apiUrl("/api/upload"),
         {

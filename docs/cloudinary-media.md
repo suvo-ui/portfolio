@@ -1,6 +1,8 @@
 # Cloudinary Media Setup
 
-The backend can store all new public uploads in Cloudinary by setting:
+Backblaze B2 with Cloudflare is the primary media setup for this project. The
+backend still supports Cloudinary for legacy deployments or migrations by
+setting:
 
 ```env
 MEDIA_STORAGE_DRIVER=cloudinary

@@ -6,6 +6,10 @@ import sharp from "sharp";
 
 import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
+import {
+  getImageVariantMetadata,
+  getImageVariantUrl,
+} from "../lib/imageVariants.js";
 import { extractSupabasePublicObjectPath } from "../lib/storage.js";
 import {
   extractCloudinaryPublicObjectPath,
@@ -246,7 +250,8 @@ async function migrateImageJob(job, uploadedByUrl) {
     let changed = imageResult.changed;
 
     if (nextVariants && typeof nextVariants === "object") {
-      for (const [key, sourceUrl] of Object.entries(nextVariants)) {
+      for (const [key, value] of Object.entries(nextVariants)) {
+        const sourceUrl = getImageVariantUrl(value);
         const variantResult = await uploadSupabaseUrlToCloudinary({
           sourceUrl,
           supabaseBucketName: job.supabaseBucketName,
@@ -255,7 +260,11 @@ async function migrateImageJob(job, uploadedByUrl) {
         });
 
         if (variantResult.changed) {
-          nextVariants[key] = variantResult.url;
+          const metadata = getImageVariantMetadata(value);
+          nextVariants[key] =
+            metadata?.width && metadata?.height && metadata?.bytes
+              ? { ...metadata, url: variantResult.url }
+              : variantResult.url;
           changed = true;
         }
       }

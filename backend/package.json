@@ -7,6 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "backfill:image-variants": "node src/scripts/backfillImageVariants.js",
+    "cleanup:media": "node src/scripts/cleanupMedia.js",
+    "test:media": "node --test src/lib/*.test.js",
     "migrate:media-cloudinary": "node src/scripts/migrateSupabaseMediaToCloudinary.js",
     "verify:media-cloudinary": "node src/scripts/verifySupabaseMediaMigration.js",
     "migrate:media-b2": "node src/scripts/migrateSupabaseMediaToS3Provider.js",

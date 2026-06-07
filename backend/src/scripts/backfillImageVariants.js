@@ -1,9 +1,15 @@
 import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
+import sharp from "sharp";
 import {
   IMAGE_VARIANT_KEYS,
   uploadImageVariantsToStorage,
 } from "../lib/storage.js";
+import {
+  getImageVariantMetadata,
+  getImageVariantUrl,
+  hasCompleteImageVariantMetadata,
+} from "../lib/imageVariants.js";
 
 const JOBS = [
   {
@@ -37,14 +43,6 @@ const limit = process.env.BACKFILL_LIMIT
   : null;
 const dryRun = process.env.DRY_RUN === "1" || process.env.DRY_RUN === "true";
 
-function hasCompleteVariants(variants) {
-  if (!variants || typeof variants !== "object") {
-    return false;
-  }
-
-  return IMAGE_VARIANT_KEYS.every((key) => Boolean(variants[key]));
-}
-
 async function downloadImage(url) {
   const response = await fetch(url);
 
@@ -53,6 +51,52 @@ async function downloadImage(url) {
   }
 
   return Buffer.from(await response.arrayBuffer());
+}
+
+async function probeImageVariant(url) {
+  const buffer = await downloadImage(url);
+  const metadata = await sharp(buffer).metadata();
+
+  return {
+    url,
+    width: metadata.width,
+    height: metadata.height,
+    bytes: buffer.length,
+  };
+}
+
+async function buildMetadataFromExistingVariants(variants) {
+  if (!variants || typeof variants !== "object" || Array.isArray(variants)) {
+    return null;
+  }
+
+  const urls = IMAGE_VARIANT_KEYS.map((key) =>
+    getImageVariantUrl(variants[key]),
+  );
+
+  if (urls.some((url) => !url)) {
+    return null;
+  }
+
+  const entries = await Promise.all(
+    IMAGE_VARIANT_KEYS.map(async (key) => {
+      const existingMetadata = getImageVariantMetadata(variants[key]);
+      const url = getImageVariantUrl(variants[key]);
+
+      if (
+        existingMetadata?.url &&
+        Number.isFinite(existingMetadata.width) &&
+        Number.isFinite(existingMetadata.height) &&
+        Number.isFinite(existingMetadata.bytes)
+      ) {
+        return [key, existingMetadata];
+      }
+
+      return [key, await probeImageVariant(url)];
+    }),
+  );
+
+  return Object.fromEntries(entries);
 }
 
 async function fetchRows(job) {
@@ -65,7 +109,7 @@ async function fetchRows(job) {
 
   return rows
     .filter((row) => !selectedId || Number(row.id) === selectedId)
-    .filter((row) => !hasCompleteVariants(row.image_variants));
+    .filter((row) => !hasCompleteImageVariantMetadata(row.image_variants));
 }
 
 async function updateRow(job, row, variants) {
@@ -106,7 +150,9 @@ async function run() {
       }
 
       try {
-        let variants = uploadedByUrl.get(row.image_url);
+        let variants =
+          (await buildMetadataFromExistingVariants(row.image_variants)) ||
+          uploadedByUrl.get(row.image_url);
 
         if (!variants) {
           const sourceBuffer = await downloadImage(row.image_url);

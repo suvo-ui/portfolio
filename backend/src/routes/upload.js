@@ -1,8 +1,14 @@
 import express from "express";
 import multer from "multer";
 
+import sql from "../config/db.js";
 import supabase from "../config/supabase.js";
 import { HttpError, sendRouteError } from "../lib/http.js";
+import { enqueueMediaCleanupJobs } from "../lib/mediaCleanup.js";
+import {
+  collectStoredImageUrls,
+  getPreferredImageVariantUrl,
+} from "../lib/imageVariants.js";
 import {
   detectUploadedFileType,
   uploadImageVariantsToStorage,
@@ -57,9 +63,24 @@ router.post("/", adminAuth, adminUploadLimiter, async (req, res) => {
       sourceBuffer: req.file.buffer,
       timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS,
     });
+    const imageUrl = getPreferredImageVariantUrl(imageVariants, "large");
+
+    if (!imageUrl) {
+      throw new HttpError(502, "Image upload completed without a public URL");
+    }
+
+    await enqueueMediaCleanupJobs(sql, {
+      bucketName: "artworks",
+      publicUrls: collectStoredImageUrls({
+        image_url: imageUrl,
+        image_variants: imageVariants,
+      }),
+      resourceType: "image",
+      reason: "unattached_upload",
+    });
 
     return res.json({
-      url: imageVariants.large,
+      url: imageUrl,
       image_variants: imageVariants,
     });
   } catch (err) {

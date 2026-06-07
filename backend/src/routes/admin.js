@@ -4,6 +4,14 @@ import sql from "../config/db.js";
 import { recordAuditEvent } from "../lib/audit.js";
 import { HttpError, sendRouteError } from "../lib/http.js";
 import {
+  cancelMediaCleanupJobs,
+  enqueueMediaCleanupJobs,
+} from "../lib/mediaCleanup.js";
+import {
+  collectStoredImageUrls,
+  getImageVariantMetadata,
+} from "../lib/imageVariants.js";
+import {
   parseBoolean,
   parseOptionalNumber,
   parsePositiveId,
@@ -63,6 +71,20 @@ function validateStoredHeroImageUrl(value) {
   return imageUrl;
 }
 
+function parsePositiveVariantNumber(value, field) {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new HttpError(400, `${field} must be a positive number`);
+  }
+
+  return Math.round(parsed);
+}
+
 function validateStoredImageVariants(value, bucketName = "artworks") {
   if (value === undefined) {
     return undefined;
@@ -79,21 +101,49 @@ function validateStoredImageVariants(value, bucketName = "artworks") {
   const variants = {};
 
   for (const key of IMAGE_VARIANT_KEYS) {
-    const rawUrl = value[key];
-    if (rawUrl === undefined || rawUrl === null || rawUrl === "") {
+    const metadata = getImageVariantMetadata(value[key]);
+    if (!metadata) {
       continue;
     }
 
-    const imageUrl = requireUrl(rawUrl, { field: `${key} image URL` });
+    const imageUrl = requireUrl(metadata.url, { field: `${key} image URL` });
 
     if (!extractPublicObjectPath(imageUrl, bucketName)) {
       throw new HttpError(400, `${key} image URL must point to stored media`);
     }
 
-    variants[key] = imageUrl;
+    const width = parsePositiveVariantNumber(metadata.width, `${key} width`);
+    const height = parsePositiveVariantNumber(metadata.height, `${key} height`);
+    const bytes = parsePositiveVariantNumber(metadata.bytes, `${key} bytes`);
+
+    variants[key] =
+      width && height && bytes
+        ? {
+            url: imageUrl,
+            width,
+            height,
+            bytes,
+          }
+        : imageUrl;
   }
 
   return Object.keys(variants).length > 0 ? variants : null;
+}
+
+async function cancelArtworkCleanupJobs(tx, record) {
+  await cancelMediaCleanupJobs(tx, {
+    bucketName: "artworks",
+    publicUrls: collectStoredImageUrls(record),
+  });
+}
+
+async function enqueueArtworkCleanupJobs(tx, record, reason) {
+  await enqueueMediaCleanupJobs(tx, {
+    bucketName: "artworks",
+    publicUrls: collectStoredImageUrls(record),
+    resourceType: "image",
+    reason,
+  });
 }
 
 function toJsonb(value) {
@@ -496,6 +546,7 @@ router.post("/artworks", adminAuth, adminArtworkLimiter, async (req, res) => {
       const created = createdRows[0];
 
       await syncArtworkPrintRecord(tx, created);
+      await cancelArtworkCleanupJobs(tx, created);
 
       const createdWithCategoryRows = await tx`
         SELECT artworks.*, categories.name AS category
@@ -622,6 +673,15 @@ router.put(
         const updated = updatedRows[0];
 
         await syncArtworkPrintRecord(tx, updated);
+        await cancelArtworkCleanupJobs(tx, updated);
+
+        if (updated.image_url !== existing.image_url) {
+          await enqueueArtworkCleanupJobs(
+            tx,
+            existing,
+            "artwork_image_replaced",
+          );
+        }
 
         const updatedWithCategoryRows = await tx`
           SELECT artworks.*, categories.name AS category
@@ -748,6 +808,8 @@ router.delete(
             AND deleted_at IS NULL
         `;
 
+        await enqueueArtworkCleanupJobs(tx, deletedArtwork, "artwork_deleted");
+
         await recordAuditEvent(tx, {
           adminId: req.adminId,
           action: "artwork_soft_delete",
@@ -799,6 +861,7 @@ router.post("/prints", adminAuth, adminArtworkLimiter, async (req, res) => {
         RETURNING *;
       `;
       const created = createdRows[0];
+      await cancelArtworkCleanupJobs(tx, created);
 
       const createdWithCategoryRows = await tx`
         SELECT prints.*, categories.name AS category
@@ -902,6 +965,11 @@ router.put("/prints/:id", adminAuth, adminArtworkLimiter, async (req, res) => {
           RETURNING *;
         `;
       const updated = updatedRows[0];
+      await cancelArtworkCleanupJobs(tx, updated);
+
+      if (updated.image_url !== existing.image_url) {
+        await enqueueArtworkCleanupJobs(tx, existing, "print_image_replaced");
+      }
 
       const updatedWithCategoryRows = await tx`
         SELECT prints.*, categories.name AS category
@@ -1029,6 +1097,7 @@ router.delete(
           RETURNING *
         `;
         const deletedPrint = deletedRows[0];
+        await enqueueArtworkCleanupJobs(tx, deletedPrint, "print_deleted");
 
         await recordAuditEvent(tx, {
           adminId: req.adminId,
@@ -1084,6 +1153,7 @@ router.post(
           RETURNING *;
         `;
         const created = createdRows[0];
+        await cancelArtworkCleanupJobs(tx, created);
 
         await recordAuditEvent(tx, {
           adminId: req.adminId,
@@ -1152,6 +1222,15 @@ router.put(
           RETURNING *;
         `;
         const updated = updatedRows[0];
+        await cancelArtworkCleanupJobs(tx, updated);
+
+        if (updated.image_url !== existing.image_url) {
+          await enqueueArtworkCleanupJobs(
+            tx,
+            existing,
+            "hero_image_replaced",
+          );
+        }
 
         await recordAuditEvent(tx, {
           adminId: req.adminId,
@@ -1198,6 +1277,8 @@ router.delete(
           DELETE FROM hero_carousel_images
           WHERE id = ${imageId}
         `;
+
+        await enqueueArtworkCleanupJobs(tx, image, "hero_image_deleted");
 
         await recordAuditEvent(tx, {
           adminId: req.adminId,
