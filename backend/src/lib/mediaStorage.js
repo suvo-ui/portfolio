@@ -304,13 +304,17 @@ function extractConfiguredPublicObjectInfo(publicUrl, bucketName) {
       const bucketPrefix = trimSlashes(bucketName);
       const expectedPrefix = bucketPrefix ? `${bucketPrefix}/` : "";
 
-      if (expectedPrefix && !relativePath.startsWith(expectedPrefix)) {
-        continue;
-      }
+      let objectPath = null;
 
-      const objectPath = expectedPrefix
-        ? relativePath.slice(expectedPrefix.length) || null
-        : relativePath;
+      if (expectedPrefix) {
+        if (relativePath.startsWith(expectedPrefix)) {
+          objectPath = relativePath.slice(expectedPrefix.length);
+        } else if (basePath.endsWith(expectedPrefix.slice(0, -1))) {
+          objectPath = relativePath;
+        }
+      } else {
+        objectPath = relativePath;
+      }
 
       if (objectPath) {
         return {
@@ -327,8 +331,9 @@ function extractConfiguredPublicObjectInfo(publicUrl, bucketName) {
 }
 
 export function extractConfiguredPublicObjectPath(publicUrl, bucketName) {
-  return extractConfiguredPublicObjectInfo(publicUrl, bucketName)?.objectPath ||
-    null;
+  return (
+    extractConfiguredPublicObjectInfo(publicUrl, bucketName)?.objectPath || null
+  );
 }
 
 export function extractSupabasePublicObjectPath(publicUrl, bucketName) {
