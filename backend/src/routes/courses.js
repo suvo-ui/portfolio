@@ -1,4 +1,6 @@
 import express from "express";
+import fs from "fs";
+import os from "os";
 import multer from "multer";
 
 import sql from "../config/db.js";
@@ -22,8 +24,8 @@ import createRateLimiter from "../middlewares/rateLimit.js";
 const router = express.Router();
 const COURSE_VIDEO_SUPABASE_BUCKET = "course vids";
 const COURSE_VIDEO_MEDIA_BUCKET = "course-vids";
-const MAX_COURSE_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
-const MEDIA_UPLOAD_TIMEOUT_MS = 30_000;
+const MAX_COURSE_VIDEO_SIZE_BYTES = 500 * 1024 * 1024;
+const MEDIA_UPLOAD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes for large video uploads
 const adminCourseLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   max: 10,
@@ -32,12 +34,40 @@ const adminCourseLimiter = createRateLimiter({
 });
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename(req, file, cb) {
+      const safeName = file.originalname
+        .replace(/[^a-zA-Z0-9._-]/g, "-")
+        .slice(0, 120);
+      cb(null, `${Date.now()}-${safeName}`);
+    },
+  }),
   limits: {
     fileSize: MAX_COURSE_VIDEO_SIZE_BYTES,
     files: 1,
   },
 });
+
+async function readFileHeader(filePath, length = 128) {
+  const handle = await fs.promises.open(filePath, "r");
+
+  try {
+    const buffer = Buffer.alloc(length);
+    const { bytesRead } = await handle.read(buffer, 0, length, 0);
+    return buffer.slice(0, bytesRead);
+  } finally {
+    await handle.close();
+  }
+}
+
+async function deleteTempFile(filePath) {
+  try {
+    await fs.promises.unlink(filePath);
+  } catch {
+    // best effort cleanup
+  }
+}
 
 function withTimeout(promise, timeoutMs, label) {
   let timeoutId;
@@ -119,9 +149,22 @@ router.put(
       });
 
       let newVideoPath = null;
+      let tempVideoPath = null;
 
       if (req.file) {
-        const detectedType = detectUploadedFileType(req.file, "video");
+        tempVideoPath = req.file.path;
+        console.info("Course video upload started", {
+          adminId: req.adminId,
+          originalName: req.file.originalname,
+          size: req.file.size,
+          path: tempVideoPath,
+        });
+
+        const headerBuffer = await readFileHeader(tempVideoPath, 128);
+        const detectedType = detectUploadedFileType(
+          { buffer: headerBuffer },
+          "video",
+        );
         newVideoPath = buildStorageObjectPath("course", detectedType.extension);
         const mediaBucketName = isExternalMediaStorageEnabled()
           ? COURSE_VIDEO_MEDIA_BUCKET
@@ -132,7 +175,7 @@ router.put(
             supabase,
             bucketName: mediaBucketName,
             objectPath: newVideoPath,
-            buffer: req.file.buffer,
+            body: fs.createReadStream(tempVideoPath),
             contentType: detectedType.contentType,
             cacheControl: "31536000",
             upsert: false,
@@ -182,10 +225,19 @@ router.put(
 
       return res.json(buildCourseResponse(updatedCourse));
     } catch (err) {
+      console.error("Course update failed", {
+        adminId: req.adminId,
+        fileName: req.file?.originalname,
+        fileSize: req.file?.size,
+        error: err,
+      });
+
       if (err instanceof multer.MulterError) {
+        console.error("Course video multer error", err);
+
         if (err.code === "LIMIT_FILE_SIZE") {
           return res.status(413).json({
-            error: "Course video is too large. Please keep it under 50 MB.",
+            error: "Course video is too large. Please keep it under 500 MB.",
           });
         }
 
@@ -193,6 +245,10 @@ router.put(
       }
 
       return sendRouteError(res, err, "Course update failed");
+    } finally {
+      if (tempVideoPath) {
+        await deleteTempFile(tempVideoPath);
+      }
     }
   },
 );

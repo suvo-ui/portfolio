@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
 import { v2 as cloudinary } from "cloudinary";
 
 import { HttpError } from "./http.js";
@@ -366,16 +367,26 @@ export async function uploadPublicMediaObject({
   supabase,
   bucketName,
   objectPath,
-  buffer,
+  body,
   contentType,
   cacheControl,
   upsert = false,
 }) {
+  if (!body) {
+    throw new HttpError(500, "Media upload body is required");
+  }
+
+  const isBuffer = Buffer.isBuffer(body);
+  const objectKey = buildProviderObjectKey(bucketName, objectPath);
+
   if (isCloudinaryMediaStorageEnabled()) {
-    const objectKey = buildProviderObjectKey(bucketName, objectPath);
+    if (!isBuffer) {
+      throw new HttpError(500, "Cloudinary upload requires a buffer payload");
+    }
+
     const result = await uploadBufferToCloudinary({
       objectKey,
-      buffer,
+      buffer: body,
       contentType,
     });
 
@@ -392,14 +403,13 @@ export async function uploadPublicMediaObject({
   }
 
   if (isS3CompatibleMediaStorageEnabled()) {
-    const objectKey = buildProviderObjectKey(bucketName, objectPath);
     const config = getS3CompatibleConfig();
 
     await getS3CompatibleClient().send(
       new PutObjectCommand({
         Bucket: config.bucketName,
         Key: objectKey,
-        Body: buffer,
+        Body: body,
         ContentType: contentType,
         CacheControl: cacheControl
           ? `public, max-age=${cacheControl}`
@@ -419,9 +429,11 @@ export async function uploadPublicMediaObject({
     throw new HttpError(500, "Supabase storage client is not configured");
   }
 
+  const uploadBody = isBuffer ? body : await streamToBuffer(body);
+
   const { error } = await supabase.storage
     .from(bucketName)
-    .upload(objectPath, buffer, {
+    .upload(objectPath, uploadBody, {
       contentType,
       cacheControl,
       upsert,
@@ -524,4 +536,30 @@ export async function deletePublicMediaObject({
 export function getSupabasePublicUrl(supabase, bucketName, objectPath) {
   return supabase.storage.from(bucketName).getPublicUrl(objectPath).data
     .publicUrl;
+}
+
+function isReadableStream(value) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof value.pipe === "function" &&
+    typeof value.readable !== "undefined"
+  );
+}
+
+async function streamToBuffer(stream) {
+  if (!isReadableStream(stream)) {
+    throw new HttpError(500, "Expected a readable stream for upload");
+  }
+
+  const chunks = [];
+
+  return new Promise((resolve, reject) => {
+    stream.on("data", (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
 }
