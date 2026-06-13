@@ -240,7 +240,7 @@ export async function uploadImageVariantsToStorage({
           supabase,
           bucketName,
           objectPath,
-          buffer: variant.buffer,
+          body: variant.buffer,
           contentType: "image/webp",
           cacheControl,
           upsert: false,

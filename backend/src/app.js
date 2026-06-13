@@ -85,6 +85,18 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   const statusCode = err.status || 500;
 
+  // RUNTIME TRACE: Capture media upload body errors
+  if (err.message && err.message.includes("Media upload body is required")) {
+    console.error(
+      "\n=== GLOBAL ERROR HANDLER: Media upload body is required ===",
+    );
+    console.error("REQUEST URL:", req.url);
+    console.error("REQUEST METHOD:", req.method);
+    console.error("ERROR STACK:", err.stack);
+    console.error("ERROR MESSAGE:", err.message);
+    console.error("=== END GLOBAL ERROR ===\n");
+  }
+
   if (statusCode >= 500) {
     console.error("GLOBAL ERROR:", err);
   }

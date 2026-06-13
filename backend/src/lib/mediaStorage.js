@@ -372,7 +372,40 @@ export async function uploadPublicMediaObject({
   cacheControl,
   upsert = false,
 }) {
+  // TRACING: Log what was actually received
+  console.log("=== uploadPublicMediaObject ENTRY ===");
+  console.log("Destructured parameters - body:", body);
+  console.log("Destructured parameters - bucketName:", bucketName);
+  console.log("Destructured parameters - objectPath:", objectPath);
+  console.log("Destructured parameters - contentType:", contentType);
+  console.log("body is undefined?", body === undefined);
+  console.log("body is null?", body === null);
+  console.log("body type:", typeof body);
+  console.log("body constructor:", body?.constructor?.name);
+  console.log("=== END ENTRY LOG ===");
+
   if (!body) {
+    // RUNTIME TRACE: Capture full error context before throwing
+    const errorStack = new Error().stack;
+    const stackLines = errorStack.split("\n");
+    const callerLine = stackLines[2] || "unknown"; // Line 0 is Error, line 1 is this line, line 2 is caller
+
+    console.error("=== RUNTIME ERROR: Media upload body is required ===");
+    console.error("ERROR LOCATION: mediaStorage.js uploadPublicMediaObject()");
+    console.error("CALLER STACK:");
+    console.error(errorStack);
+    console.error("\nCALLER FILE AND LINE:", callerLine);
+    console.error("\nRECEIVED PARAMETERS:");
+    console.error("  supabase:", supabase ? "SupabaseClient" : "undefined");
+    console.error("  bucketName:", bucketName);
+    console.error("  objectPath:", objectPath);
+    console.error("  body:", body);
+    console.error("  contentType:", contentType);
+    console.error("  cacheControl:", cacheControl);
+    console.error("  upsert:", upsert);
+    console.error("\nFULL ARGUMENTS OBJECT:", arguments);
+    console.error("=== END ERROR TRACE ===\n");
+
     throw new HttpError(500, "Media upload body is required");
   }
 

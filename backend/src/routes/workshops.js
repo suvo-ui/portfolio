@@ -139,7 +139,7 @@ async function uploadWorkshopAsset(file, kind) {
       supabase,
       bucketName,
       objectPath,
-      buffer: file.buffer,
+      body: file.buffer,
       contentType: detectedType.contentType,
       cacheControl: "31536000",
       upsert: false,
@@ -302,63 +302,58 @@ router.post(
   },
 );
 
-router.put(
-  "/:id",
-  adminAuth,
-  adminWorkshopLimiter,
-  async (req, res) => {
-    try {
-      const workshopId = parsePositiveId(req.params.id, "workshop id");
-      const completed = parseBoolean(req.body?.completed, {
-        field: "completed",
-        defaultValue: null,
-      });
+router.put("/:id", adminAuth, adminWorkshopLimiter, async (req, res) => {
+  try {
+    const workshopId = parsePositiveId(req.params.id, "workshop id");
+    const completed = parseBoolean(req.body?.completed, {
+      field: "completed",
+      defaultValue: null,
+    });
 
-      if (completed === null) {
-        throw new HttpError(400, "Completed status is required");
-      }
+    if (completed === null) {
+      throw new HttpError(400, "Completed status is required");
+    }
 
-      const updatedWorkshop = await sql.begin(async (tx) => {
-        const existingRows = await tx`
+    const updatedWorkshop = await sql.begin(async (tx) => {
+      const existingRows = await tx`
           SELECT *
           FROM workshops
           WHERE id = ${workshopId}
             AND deleted_at IS NULL
           LIMIT 1
         `;
-        const existing = existingRows[0] || null;
+      const existing = existingRows[0] || null;
 
-        if (!existing) {
-          throw new HttpError(404, "Workshop not found");
-        }
+      if (!existing) {
+        throw new HttpError(404, "Workshop not found");
+      }
 
-        const updatedRows = await tx`
+      const updatedRows = await tx`
           UPDATE workshops
           SET completed = ${completed}
           WHERE id = ${workshopId}
           RETURNING *
         `;
-        const updated = updatedRows[0];
+      const updated = updatedRows[0];
 
-        await recordAuditEvent(tx, {
-          adminId: req.adminId,
-          action: "workshop_complete_toggle",
-          entityType: "workshop",
-          entityId: updated.id,
-          before: existing,
-          after: updated,
-          req,
-        });
-
-        return updated;
+      await recordAuditEvent(tx, {
+        adminId: req.adminId,
+        action: "workshop_complete_toggle",
+        entityType: "workshop",
+        entityId: updated.id,
+        before: existing,
+        after: updated,
+        req,
       });
 
-      return res.json(updatedWorkshop);
-    } catch (err) {
-      return sendRouteError(res, err, "Failed to update workshop");
-    }
-  },
-);
+      return updated;
+    });
+
+    return res.json(updatedWorkshop);
+  } catch (err) {
+    return sendRouteError(res, err, "Failed to update workshop");
+  }
+});
 
 router.delete(
   "/:id",

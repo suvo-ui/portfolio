@@ -212,7 +212,7 @@ async function uploadSupabaseUrlToCloudinary({
     supabase,
     bucketName: cloudinaryPrefix,
     objectPath,
-    buffer,
+    body: buffer,
     contentType,
     cacheControl: CACHE_CONTROL_SECONDS,
     upsert: false,

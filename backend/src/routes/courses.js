@@ -170,16 +170,34 @@ router.put(
           ? COURSE_VIDEO_MEDIA_BUCKET
           : COURSE_VIDEO_SUPABASE_BUCKET;
 
+        // TRACING: Log file state before upload
+        console.log("=== COURSE VIDEO UPLOAD TRACE ===");
+        console.log("req.file", req.file);
+        console.log("tempVideoPath", tempVideoPath);
+        console.log(
+          "file exists",
+          tempVideoPath ? fs.existsSync(tempVideoPath) : false,
+        );
+
+        const uploadBody = fs.createReadStream(tempVideoPath);
+        console.log("uploadBody (stream)", uploadBody);
+        console.log("uploadBody constructor", uploadBody?.constructor?.name);
+
+        const uploadPayload = {
+          supabase,
+          bucketName: mediaBucketName,
+          objectPath: newVideoPath,
+          body: uploadBody,
+          contentType: detectedType.contentType,
+          cacheControl: "31536000",
+          upsert: false,
+        };
+        console.log("uploadPayload object", uploadPayload);
+        console.log("uploadPayload.body", uploadPayload.body);
+        console.log("=== END TRACE ===");
+
         const uploaded = await withTimeout(
-          uploadPublicMediaObject({
-            supabase,
-            bucketName: mediaBucketName,
-            objectPath: newVideoPath,
-            body: fs.createReadStream(tempVideoPath),
-            contentType: detectedType.contentType,
-            cacheControl: "31536000",
-            upsert: false,
-          }),
+          uploadPublicMediaObject(uploadPayload),
           MEDIA_UPLOAD_TIMEOUT_MS,
           "Course video upload",
         );

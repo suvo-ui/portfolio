@@ -12,6 +12,12 @@ export function isHttpError(error) {
 
 export function sendRouteError(res, error, fallbackMessage) {
   if (isHttpError(error)) {
+    // RUNTIME TRACE: Log HttpError details for debugging
+    if (error.message.includes("Media upload body is required")) {
+      console.error("=== HTTP ERROR CAUGHT: Media upload body is required ===");
+      console.error("Stack trace:", error.stack);
+      console.error("=== END HTTP ERROR ===\n");
+    }
     return res.status(error.status).json({ error: error.message });
   }
 
